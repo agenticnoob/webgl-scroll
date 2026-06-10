@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "description": "React bindings for @webgl-scroll/core.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agenticnoob/webgl-scroll",
+    "directory": "packages/react"
+  },
   "sideEffects": false,
   "files": ["dist", "README.md", "LICENSE"],
   "main": "./dist/index.cjs",

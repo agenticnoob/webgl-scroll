@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "description": "Core runtime for composable WebGL scroll effects.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agenticnoob/webgl-scroll",
+    "directory": "packages/core"
+  },
   "sideEffects": false,
   "files": ["dist", "README.md", "LICENSE"],
   "main": "./dist/index.cjs",
