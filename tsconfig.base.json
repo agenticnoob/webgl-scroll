@@ -10,6 +10,12 @@
     "declarationMap": true,
     "sourceMap": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@webgl-scroll/core": ["packages/core/src/index.ts"],
+      "@webgl-scroll/effects": ["packages/effects/src/index.ts"],
+      "@webgl-scroll/react": ["packages/react/src/index.ts"]
+    },
     "types": ["node"]
   },
   "include": [
