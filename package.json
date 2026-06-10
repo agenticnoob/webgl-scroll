@@ -1,0 +1,36 @@
+{
+  "name": "webgl-scroll",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run pack:dry-run",
+    "example:next:build": "npm run build --workspace next-basic",
+    "example:react:build": "npm run build --workspace react-basic",
+    "lint": "eslint .",
+    "pack:dry-run": "npm pack --workspace @webgl-scroll/core --dry-run && npm pack --workspace @webgl-scroll/effects --dry-run && npm pack --workspace @webgl-scroll/react --dry-run",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.base.json --noEmit"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^22.15.30",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@types/three": "^0.184.1",
+    "@vitejs/plugin-react": "^4.4.1",
+    "eslint": "^9.28.0",
+    "globals": "^17.6.0",
+    "jsdom": "^26.1.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.61.0",
+    "vitest": "^3.2.4"
+  }
+}
