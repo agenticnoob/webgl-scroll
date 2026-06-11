@@ -30,6 +30,7 @@ Required DOM:
             kind: "video",
             src: "/videos/motion.mp4",
             order: 1,
+            placement: { x: 0.3, y: 0.55, width: 0.42, height: 0.52 },
             playback: { mode: "scroll-scrub", startTime: 0, endTime: 4 }
           },
           {
@@ -37,6 +38,7 @@ Required DOM:
             kind: "glb",
             src: "/models/object.glb",
             order: 2,
+            placement: { x: 0.72, y: 0.46, width: 0.44, height: 0.5 },
             transform: { rotateY: ["scroll", 0, 6.283], scale: ["scroll", 0.8, 1] }
           }
         ]
@@ -53,6 +55,7 @@ Params:
 
 - `placement`: shared DOM anchor mapping. Defaults to `{ anchor: "element", fit: "cover", x: 0.5, y: 0.5, width: 1, height: 1, offsetX: 0, offsetY: 0 }`.
 - `assets`: ordered image, video, or GLB descriptors. Invalid descriptors are ignored.
+- `asset.placement`: partial per-asset override merged over `params.placement`. Use this to position multiple assets independently on the same trigger.
 - `playback.mode`: video playback mode, one of `loop-while-visible`, `once-on-enter`, or `scroll-scrub`.
 - `transform`: optional scroll tuples such as `["scroll", 0, 1]` for opacity, scale, and rotation.
 

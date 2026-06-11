@@ -10,17 +10,21 @@ import { createGLBAsset } from "./glbAsset";
 import { createImageAsset } from "./imageAsset";
 import { normalizeAssetLayerParams } from "./params";
 import { mapElementRectToWorld } from "./rectMapping";
-import type { AssetDescriptor } from "./types";
+import type { AssetDescriptor, AssetPlacement } from "./types";
 import { createVideoAsset } from "./videoAsset";
 
 type AssetRuntimeFactory = (descriptor: AssetDescriptor) => AssetRuntime;
+type AssetLayerRuntimeEntry = {
+  placement?: Partial<AssetPlacement>;
+  runtime: AssetRuntime;
+};
 
 let runtimeFactory: AssetRuntimeFactory = createDefaultRuntime;
 
 export class AssetLayerEffect extends WebGLEffect {
   readonly type = "asset-layer";
 
-  private assets: AssetRuntime[] = [];
+  private assets: AssetLayerRuntimeEntry[] = [];
   private placement = normalizeAssetLayerParams({}).placement;
 
   create(context: EffectContext): void {
@@ -29,7 +33,7 @@ export class AssetLayerEffect extends WebGLEffect {
     this.assets = params.assets.map((descriptor) => {
       const runtime = runtimeFactory(descriptor);
       context.scene.add(runtime.object);
-      return runtime;
+      return { placement: descriptor.placement, runtime };
     });
   }
 
@@ -40,20 +44,20 @@ export class AssetLayerEffect extends WebGLEffect {
       return;
     }
 
-    const bounds = mapElementRectToWorld({
-      placement: this.placement,
-      rect,
-      viewport: context.viewport
-    });
-
     for (const asset of this.assets) {
-      asset.update(bounds, snapshot, context);
+      const bounds = mapElementRectToWorld({
+        placement: { ...this.placement, ...asset.placement },
+        rect,
+        viewport: context.viewport
+      });
+
+      asset.runtime.update(bounds, snapshot, context);
     }
   }
 
   dispose(): void {
     for (const asset of this.assets) {
-      asset.dispose();
+      asset.runtime.dispose();
     }
     this.assets = [];
   }

@@ -84,7 +84,7 @@ function normalizeAsset(input: unknown, index: number): AssetDescriptor | null {
     kind,
     opacity,
     order: asFiniteNumber(record.order, index),
-    placement: record.placement ? normalizePlacement(record.placement) : undefined,
+    placement: record.placement ? normalizePartialPlacement(record.placement) : undefined,
     playback: kind === "video" ? normalizePlayback(record.playback) : undefined,
     src,
     transform: normalizeTransform(record.transform)
@@ -104,6 +104,35 @@ function normalizePlacement(input: unknown): AssetPlacement {
     x: asFiniteNumber(record?.x, DEFAULT_PLACEMENT.x),
     y: asFiniteNumber(record?.y, DEFAULT_PLACEMENT.y)
   };
+}
+
+function normalizePartialPlacement(input: unknown): Partial<AssetPlacement> | undefined {
+  const record = asRecord(input);
+
+  if (!record) {
+    return undefined;
+  }
+
+  const placement: Partial<AssetPlacement> = {};
+  const anchor = asEnum(record.anchor, ANCHORS);
+  const fit = asEnum(record.fit, FITS);
+
+  if (anchor) {
+    placement.anchor = anchor;
+  }
+
+  if (fit) {
+    placement.fit = fit;
+  }
+
+  for (const key of ["height", "offsetX", "offsetY", "width", "x", "y"] as const) {
+    const value = asOptionalFiniteNumber(record[key]);
+    if (value !== undefined) {
+      placement[key] = value;
+    }
+  }
+
+  return Object.keys(placement).length > 0 ? placement : undefined;
 }
 
 function normalizePlayback(input: unknown): AssetPlayback {

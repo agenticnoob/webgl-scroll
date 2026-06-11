@@ -30,6 +30,7 @@ npm install @webgl-scroll/core @webgl-scroll/effects three
         kind: "video",
         src: "/videos/motion.mp4",
         order: 1,
+        placement: { x: 0.3, y: 0.55, width: 0.42, height: 0.52 },
         playback: { mode: "scroll-scrub", startTime: 0, endTime: 4 }
       },
       {
@@ -37,6 +38,7 @@ npm install @webgl-scroll/core @webgl-scroll/effects three
         kind: "glb",
         src: "/models/object.glb",
         order: 2,
+        placement: { x: 0.72, y: 0.46, width: 0.44, height: 0.5 },
         transform: { rotateY: ["scroll", 0, 6.283] }
       }
     ]
@@ -45,3 +47,5 @@ npm install @webgl-scroll/core @webgl-scroll/effects three
 ```
 
 The effect maps the trigger element's rect into the shared orthographic WebGL world, updates all assets from the same scroll progress, pauses video in reduced motion, and disposes textures/materials/geometries on teardown.
+
+`params.placement` sets the shared anchor mapping. Each asset can add `placement` as a partial override, so one trigger can independently place image, video, and GLB layers without creating extra scroll triggers.

@@ -1,6 +1,33 @@
 import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
 
+const requestAnimationFrameMock = vi.fn((_callback: FrameRequestCallback) => 0);
+const cancelAnimationFrameMock = vi.fn((_handle: number) => undefined);
+
+Object.defineProperty(window, "requestAnimationFrame", {
+  configurable: true,
+  writable: true,
+  value: requestAnimationFrameMock
+});
+
+Object.defineProperty(window, "cancelAnimationFrame", {
+  configurable: true,
+  writable: true,
+  value: cancelAnimationFrameMock
+});
+
+Object.defineProperty(globalThis, "requestAnimationFrame", {
+  configurable: true,
+  writable: true,
+  value: requestAnimationFrameMock
+});
+
+Object.defineProperty(globalThis, "cancelAnimationFrame", {
+  configurable: true,
+  writable: true,
+  value: cancelAnimationFrameMock
+});
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

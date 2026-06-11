@@ -32,12 +32,12 @@ export function mapElementRectToWorld(options: {
 
   return {
     center: {
-      x: screenCenterX - options.viewport.width / 2,
-      y: options.viewport.height / 2 - screenCenterY
+      x: (screenCenterX / options.viewport.width) * 2 - 1,
+      y: 1 - (screenCenterY / options.viewport.height) * 2
     },
     size: {
-      height: anchor.height * options.placement.height,
-      width: anchor.width * options.placement.width
+      height: (anchor.height * options.placement.height / options.viewport.height) * 2,
+      width: (anchor.width * options.placement.width / options.viewport.width) * 2
     }
   };
 }

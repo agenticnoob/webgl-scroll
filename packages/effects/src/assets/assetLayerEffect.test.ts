@@ -94,8 +94,55 @@ describe("AssetLayerEffect", () => {
     expect(updates[0]).toEqual(updates[1]);
     expect(updates[0]?.center.x).toBeCloseTo(0);
     expect(updates[0]?.center.y).toBeCloseTo(0);
-    expect(updates[0]?.size.width).toBeCloseTo(500);
-    expect(updates[0]?.size.height).toBeCloseTo(300);
+    expect(updates[0]?.size.width).toBeCloseTo(1);
+    expect(updates[0]?.size.height).toBeCloseTo(1);
+
+    effect.dispose();
+  });
+
+  it("applies per-asset placement overrides on top of shared placement", () => {
+    const updates: Record<string, Parameters<AssetRuntime["update"]>[0]> = {};
+    setAssetLayerRuntimeFactoryForTests((descriptor) =>
+      makeRuntime({ update: (bounds) => { updates[descriptor.id] = bounds; } })
+    );
+
+    const element = document.createElement("section");
+    vi.spyOn(element, "getBoundingClientRect").mockReturnValue({
+      bottom: 600,
+      height: 600,
+      left: 0,
+      right: 1000,
+      top: 0,
+      width: 1000,
+      x: 0,
+      y: 0,
+      toJSON: () => ({})
+    });
+
+    const effect = new AssetLayerEffect();
+    effect.create(makeContext({
+      assets: [
+        { id: "base", kind: "video", src: "/base.mp4" },
+        {
+          id: "small-left",
+          kind: "video",
+          placement: { height: 0.5, width: 0.5, x: 0.25, y: 0.25 },
+          src: "/small.mp4"
+        }
+      ],
+      placement: { height: 1, width: 1, x: 0.5, y: 0.5 }
+    }, element));
+
+    effect.update(makeSnapshot(element), makeRenderContext());
+
+    expect(updates.base.center.x).toBeCloseTo(0);
+    expect(updates.base.center.y).toBeCloseTo(0);
+    expect(updates.base.size.width).toBeCloseTo(2);
+    expect(updates.base.size.height).toBeCloseTo(2);
+    expect(updates["small-left"].center.x).toBeCloseTo(-0.5);
+    expect(updates["small-left"].center.y).toBeCloseTo(0.5);
+    expect(updates["small-left"].size.width).toBeCloseTo(1);
+    expect(updates["small-left"].size.height).toBeCloseTo(1);
 
     effect.dispose();
   });

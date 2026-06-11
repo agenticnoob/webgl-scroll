@@ -21,8 +21,8 @@ describe("mapElementRectToWorld", () => {
 
     expect(bounds.center.x).toBeCloseTo(0);
     expect(bounds.center.y).toBeCloseTo(0);
-    expect(bounds.size.width).toBeCloseTo(500);
-    expect(bounds.size.height).toBeCloseTo(300);
+    expect(bounds.size.width).toBeCloseTo(1);
+    expect(bounds.size.height).toBeCloseTo(1);
   });
 
   it("supports relative placement inside the anchor rect", () => {
@@ -41,9 +41,9 @@ describe("mapElementRectToWorld", () => {
       viewport: { height: 600, width: 1000 }
     });
 
-    expect(bounds.center.x).toBeCloseTo(-250);
-    expect(bounds.center.y).toBeCloseTo(150);
-    expect(bounds.size.width).toBeCloseTo(500);
-    expect(bounds.size.height).toBeCloseTo(300);
+    expect(bounds.center.x).toBeCloseTo(-0.5);
+    expect(bounds.center.y).toBeCloseTo(0.5);
+    expect(bounds.size.width).toBeCloseTo(1);
+    expect(bounds.size.height).toBeCloseTo(1);
   });
 });

@@ -38,4 +38,20 @@ describe("normalizeAssetLayerParams", () => {
 
     expect(params.assets.map((asset) => asset.id)).toEqual(["valid"]);
   });
+
+  it("keeps asset placement as partial overrides", () => {
+    const params = normalizeAssetLayerParams({
+      placement: { height: 0.8, width: 0.8, x: 0.5, y: 0.5 },
+      assets: [
+        {
+          id: "video",
+          kind: "video",
+          placement: { width: 0.4, x: 0.25 },
+          src: "/video.mp4"
+        }
+      ]
+    });
+
+    expect(params.assets[0]?.placement).toEqual({ width: 0.4, x: 0.25 });
+  });
 });

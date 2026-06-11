@@ -1,5 +1,64 @@
 # Effects Reference
 
+## `asset-layer`
+
+Use when:
+
+- One DOM trigger should declaratively render image, video, or GLB assets in WebGL.
+- Multiple assets should share the same trigger progress and visibility state.
+- Assets need independent placement without adding more scroll triggers.
+
+Avoid when:
+
+- The media needs to remain a normal DOM `<img>` or `<video>` for user interaction.
+- A custom compositor or shader pipeline is required before basic asset layering works.
+
+React:
+
+```tsx
+<WebGLEngineTrigger
+  trigger="media"
+  effects={[
+    {
+      type: "asset-layer",
+      layer: "background",
+      params: {
+        placement: { anchor: "element", x: 0.5, y: 0.5, width: 1, height: 1 },
+        assets: [
+          {
+            id: "birds",
+            kind: "video",
+            src: "/videos/birds.mp4",
+            order: 1,
+            placement: { x: 0.32, y: 0.5, width: 0.48, height: 0.58 },
+            playback: { mode: "loop-while-visible", startTime: 0 }
+          },
+          {
+            id: "model",
+            kind: "glb",
+            src: "/models/object.glb",
+            order: 2,
+            placement: { x: 0.72, y: 0.45, width: 0.42, height: 0.42 },
+            transform: { rotateY: ["scroll", 0, 6.283] }
+          }
+        ]
+      }
+    }
+  ]}
+/>
+```
+
+Placement rule:
+
+- `params.placement` is the shared default for the trigger.
+- `asset.placement` is a partial override for one asset.
+
+Common mistakes:
+
+- Adding one DOM trigger per asset when one `asset-layer` can own the stack.
+- Expecting `asset.placement` to replace shared progress or visibility; it only changes placement fields.
+- Moving app-specific asset URLs into package source.
+
 ## `fade-title`
 
 Use when:
