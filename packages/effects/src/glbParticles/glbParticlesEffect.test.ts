@@ -184,6 +184,46 @@ describe("GlbParticlesEffect", () => {
     expect(renderMaterial.uniforms.uPointer.value.y).toBe(0);
   });
 
+  it("applies declared object transform on top of DOM placement", async () => {
+    setGlbParticlesRuntimeForTests({
+      createSimulationRunner: () => ({ dispose: vi.fn(), step: vi.fn(), texture: new THREE.Texture() }),
+      loadOrigins: vi.fn(async () => new Float32Array(32 * 32 * 3))
+    });
+
+    const scene = new THREE.Scene();
+    const element = document.createElement("section");
+    setVisibleRect(element);
+    const effect = new GlbParticlesEffect();
+    effect.create(
+      makeContext(
+        {
+          src: "/model.glb",
+          transform: {
+            autoRotate: { axis: "y", speed: 0.25 },
+            rotation: { x: 0.1, y: -0.45, z: 0.2 },
+            scale: 0.5
+          }
+        },
+        scene
+      )
+    );
+    await Promise.resolve();
+
+    effect.update(makeSnapshot(element), makeRenderContext({ scene, time: 2 }));
+
+    const group = scene.children.find((child): child is THREE.Group => child.type === "Group");
+    if (!group) {
+      throw new Error("Expected particle group to be created");
+    }
+
+    expect(group.scale.x).toBe(1);
+    expect(group.scale.y).toBe(1);
+    expect(group.scale.z).toBe(1);
+    expect(group.rotation.x).toBe(0.1);
+    expect(group.rotation.y).toBeCloseTo(0.05);
+    expect(group.rotation.z).toBe(0.2);
+  });
+
   it("skips simulation when reduced motion is active", async () => {
     const step = vi.fn();
     setGlbParticlesRuntimeForTests({

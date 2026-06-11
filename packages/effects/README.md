@@ -65,9 +65,16 @@ The effect maps the trigger element's rect into the shared orthographic WebGL wo
     pointerRadius: 0.28,
     scatterForce: 3.2,
     returnForce: 0.78,
-    damping: 0.92
+    damping: 0.92,
+    transform: {
+      rotation: { x: 0, y: -0.45, z: 0 },
+      autoRotate: { axis: "y", speed: 0.18 },
+      scale: 1
+    }
   }
 }
 ```
 
 The host app should install one `createWebGLPointerBridge()` and update it from the renderer loop before-render hook. Do not add per-effect pointer listeners.
+
+Use `params.transform` for object-level particle group adjustment. `placement` determines the DOM anchor and base size; `transform` applies static rotation, positive scalar scale, and optional `autoRotate` on top of that base. Ordinary object rotation should stay inside the effect params instead of becoming a separate transform effect.

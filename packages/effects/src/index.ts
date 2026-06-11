@@ -16,4 +16,7 @@ export * from "./glbParticles/types";
 export * from "./pixelatedWipeEffect";
 export * from "./shaders";
 export * from "./themeTransitionState";
+export * from "./transform/applyObjectTransform";
+export * from "./transform/params";
+export * from "./transform/types";
 export * from "./uniforms";

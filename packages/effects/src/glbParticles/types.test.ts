@@ -24,12 +24,33 @@ describe("normalizeGlbParticlesParams", () => {
       pointerRadius: 0.18,
       returnForce: 0.9,
       scatterForce: 1.4,
-      src: "/model.glb"
+      src: "/model.glb",
+      transform: {
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: 1
+      }
     });
   });
 
   it("clamps particle texture size to a power-of-two range", () => {
     expect(normalizeGlbParticlesParams({ particleTextureSize: 1000, src: "/model.glb" }).particleTextureSize).toBe(512);
     expect(normalizeGlbParticlesParams({ particleTextureSize: 2, src: "/model.glb" }).particleTextureSize).toBe(32);
+  });
+
+  it("normalizes object transform config for particles", () => {
+    const params = normalizeGlbParticlesParams({
+      src: "/model.glb",
+      transform: {
+        autoRotate: { axis: "z", speed: 0.4 },
+        rotation: { x: 0.1, y: -0.35 },
+        scale: 0.75
+      }
+    });
+
+    expect(params.transform).toEqual({
+      autoRotate: { axis: "z", speed: 0.4 },
+      rotation: { x: 0.1, y: -0.35, z: 0 },
+      scale: 0.75
+    });
   });
 });

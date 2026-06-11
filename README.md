@@ -44,7 +44,7 @@ The React package emits `data-webgl-*` trigger metadata. The host app still owns
 
 - `asset-layer`: renders ordered image, video, and GLB assets from one DOM trigger, with shared progress and per-asset placement overrides.
 - `fade-title`: renders a measured DOM heading as a WebGL title texture.
-- `glb-particles`: samples a GLB surface into GPU-simulated particles that respond to shared pointer input.
+- `glb-particles`: samples a GLB surface into GPU-simulated particles that support object-level `params.transform` and respond to shared pointer input.
 - `pixelated-wipe`: renders a fullscreen section transition from cut anchors.
 
 See [docs/effects.md](docs/effects.md) for effect selection.
@@ -71,7 +71,7 @@ See [docs/package-boundaries.md](docs/package-boundaries.md).
 
 ## Status
 
-`0.1.0` is the first public release line. Current development on `codex/asset-layer` adds shared pointer input, GPU simulation helpers, and the `glb-particles` effect; validate unpublished package builds in a host app by reinstalling local tarballs and clearing stale dev-server caches.
+`0.1.0` is the first public release line. Current development on `codex/asset-layer` adds shared pointer input, GPU simulation helpers, `glb-particles`, and declarative object transform support for particle GLBs; validate unpublished package builds in a host app by reinstalling local tarballs and clearing stale dev-server caches.
 
 ## License
 

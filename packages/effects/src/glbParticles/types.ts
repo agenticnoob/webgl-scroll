@@ -1,4 +1,6 @@
 import type { AssetAnchor, AssetFit, AssetPlacement } from "../assets/types";
+import { normalizeObjectTransform } from "../transform/params";
+import type { ObjectTransform } from "../transform/types";
 
 const ANCHORS = new Set<AssetAnchor>(["element", "viewport"]);
 const FITS = new Set<AssetFit>(["cover", "contain", "stretch"]);
@@ -13,6 +15,7 @@ export type GlbParticlesParams = {
   returnForce: number;
   scatterForce: number;
   src: string;
+  transform: ObjectTransform;
 };
 
 export function normalizeGlbParticlesParams(input: unknown): GlbParticlesParams {
@@ -27,7 +30,8 @@ export function normalizeGlbParticlesParams(input: unknown): GlbParticlesParams 
     pointerRadius: asFiniteNumber(record?.pointerRadius, 0.18),
     returnForce: asFiniteNumber(record?.returnForce, 0.9),
     scatterForce: asFiniteNumber(record?.scatterForce, 1.4),
-    src: asString(record?.src, "")
+    src: asString(record?.src, ""),
+    transform: normalizeObjectTransform(record?.transform)
   };
 }
 

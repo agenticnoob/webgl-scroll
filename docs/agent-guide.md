@@ -75,11 +75,18 @@ Use `glb-particles` when a model should be sampled into GPU particles and respon
         pointerRadius: 0.28,
         scatterForce: 3.2,
         returnForce: 0.78,
-        damping: 0.92
+        damping: 0.92,
+        transform: {
+          rotation: { x: 0, y: -0.45, z: 0 },
+          autoRotate: { axis: "y", speed: 0.18 },
+          scale: 1
+        }
       }
     }
   ]}
 />
 ```
+
+Keep ordinary object transforms inside the effect's `params.transform`. Do not create a separate transform effect unless the visual behavior truly needs its own resources, lifecycle, or compositor role.
 
 The app should install one `createWebGLPointerBridge` and update it from `WebGLRendererLoop.addBeforeRenderHook`. If browser validation sees no movement after installing local tarballs, inspect live shader uniforms and clear stale dev-server caches before changing effect params.

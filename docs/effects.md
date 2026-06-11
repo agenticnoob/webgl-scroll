@@ -127,7 +127,12 @@ Required DOM:
         pointerRadius: 0.28,
         scatterForce: 3.2,
         returnForce: 0.78,
-        damping: 0.92
+        damping: 0.92,
+        transform: {
+          rotation: { x: 0, y: -0.45, z: 0 },
+          autoRotate: { axis: "y", speed: 0.18 },
+          scale: 1
+        }
       }
     }
   ]}
@@ -148,10 +153,12 @@ Params:
 - `returnForce`: force pulling particles back to sampled origins.
 - `damping`: velocity damping per frame.
 - `color`: particle color.
+- `transform`: object-level placement adjustment for the particle group. Supports static `rotation`, positive scalar `scale`, and `autoRotate` with `axis: "x" | "y" | "z"` plus radians-per-second `speed`.
 
 Runtime:
 
 - The effect samples GLB mesh surfaces, normalizes origins, creates origin/position/velocity textures, runs GPU velocity and position passes, then renders one `Points` object.
+- Placement owns the DOM anchor and base model size; `transform` is applied on top of that base. Do not create a separate transform effect for ordinary object rotation or scale.
 - Pointer state comes from `sharedStateTree.pointer`, normally written by one app-level `createWebGLPointerBridge({ target: canvas })`.
 - The render shader includes a small pointer displacement fallback so interaction remains visible even when simulation movement is subtle.
 

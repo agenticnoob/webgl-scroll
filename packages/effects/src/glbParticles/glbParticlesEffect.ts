@@ -9,6 +9,7 @@ import {
 import * as THREE from "three";
 
 import { mapElementRectToWorld } from "../assets/rectMapping";
+import { applyObjectTransform } from "../transform/applyObjectTransform";
 import { createParticleDataTextures, type ParticleDataTextures } from "./particleTextures";
 import {
   glbParticlesPositionFragmentShader,
@@ -102,7 +103,11 @@ export class GlbParticlesEffect extends WebGLEffect {
     const baseScale = Math.min(bounds.size.width, bounds.size.height);
 
     this.group.position.set(bounds.center.x, bounds.center.y, 0);
-    this.group.scale.setScalar(baseScale);
+    applyObjectTransform(this.group, {
+      baseScale,
+      time: context.time,
+      transform: this.params.transform
+    });
     this.group.visible = snapshot.isActive;
 
     if (!snapshot.isActive || sharedStateTree.reducedMotion) {
