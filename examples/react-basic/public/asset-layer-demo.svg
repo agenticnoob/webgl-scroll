@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-label="Asset layer demo texture">
+  <rect width="640" height="420" rx="28" fill="#f7f2ea"/>
+  <path d="M76 296C148 174 236 116 340 122c76 5 146 50 224 132" fill="none" stroke="#142334" stroke-width="22" stroke-linecap="round"/>
+  <circle cx="202" cy="196" r="48" fill="#baccd9"/>
+  <circle cx="434" cy="210" r="74" fill="#142334" opacity=".9"/>
+  <path d="M112 324h412" stroke="#142334" stroke-width="18" stroke-linecap="round" opacity=".18"/>
+</svg>

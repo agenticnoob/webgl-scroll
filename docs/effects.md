@@ -1,5 +1,67 @@
 # Effects
 
+## AssetLayerEffect
+
+Use when:
+
+- One DOM trigger should render one or more WebGL assets anchored to that element.
+- Image, video, and GLB assets need shared scroll progress, visibility, placement, and cleanup.
+- A page needs declarative media layers without app-local Three.js renderer ownership.
+
+Avoid when:
+
+- The media should remain normal selectable or accessible DOM content.
+- A custom shader compositor is required beyond normal material opacity.
+
+Required DOM:
+
+```tsx
+<WebGLEngineTrigger
+  effects={[
+    {
+      type: "asset-layer",
+      layer: "background",
+      params: {
+        placement: { anchor: "element", fit: "cover" },
+        assets: [
+          { id: "backdrop", kind: "image", src: "/images/backdrop.jpg", order: 0 },
+          {
+            id: "motion",
+            kind: "video",
+            src: "/videos/motion.mp4",
+            order: 1,
+            playback: { mode: "scroll-scrub", startTime: 0, endTime: 4 }
+          },
+          {
+            id: "model",
+            kind: "glb",
+            src: "/models/object.glb",
+            order: 2,
+            transform: { rotateY: ["scroll", 0, 6.283], scale: ["scroll", 0.8, 1] }
+          }
+        ]
+      }
+    }
+  ]}
+  trigger="product"
+>
+  <section>Product</section>
+</WebGLEngineTrigger>
+```
+
+Params:
+
+- `placement`: shared DOM anchor mapping. Defaults to `{ anchor: "element", fit: "cover", x: 0.5, y: 0.5, width: 1, height: 1, offsetX: 0, offsetY: 0 }`.
+- `assets`: ordered image, video, or GLB descriptors. Invalid descriptors are ignored.
+- `playback.mode`: video playback mode, one of `loop-while-visible`, `once-on-enter`, or `scroll-scrub`.
+- `transform`: optional scroll tuples such as `["scroll", 0, 1]` for opacity, scale, and rotation.
+
+Cleanup:
+
+- Image and video textures, geometries, and materials are disposed with the effect.
+- GLB object graphs are traversed so geometries, materials, and texture-valued material fields are disposed.
+- Reduced motion pauses video playback and hides WebGL asset layers so DOM content remains readable.
+
 ## FadeTitleEffect
 
 Use when:

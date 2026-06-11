@@ -1,0 +1,141 @@
+import * as THREE from "three";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import type { EffectContext, RenderContext, TriggerSnapshot } from "@webgl-scroll/core";
+
+import { AssetLayerEffect, resetAssetLayerRuntimeFactoryForTests, setAssetLayerRuntimeFactoryForTests } from "./assetLayerEffect";
+import type { AssetRuntime } from "./assetRuntime";
+
+function makeRenderContext(overrides: Partial<RenderContext> = {}): RenderContext {
+  return {
+    camera: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1),
+    deltaTime: 0.016,
+    renderer: {} as THREE.WebGLRenderer,
+    scene: new THREE.Scene(),
+    time: 0,
+    viewport: { height: 600, width: 1000 },
+    ...overrides
+  };
+}
+
+function makeSnapshot(element: HTMLElement, overrides: Partial<TriggerSnapshot> = {}): TriggerSnapshot {
+  return {
+    direction: 0,
+    effect: "asset-layer",
+    element,
+    end: "bottom top",
+    id: "scene:asset:0",
+    isActive: true,
+    params: {},
+    progress: 0.5,
+    scene: "scene",
+    start: "top bottom",
+    velocity: 0,
+    ...overrides
+  };
+}
+
+afterEach(() => {
+  resetAssetLayerRuntimeFactoryForTests();
+  vi.restoreAllMocks();
+});
+
+describe("AssetLayerEffect", () => {
+  it("normalizes params and creates child assets in order", () => {
+    const created: string[] = [];
+    setAssetLayerRuntimeFactoryForTests((descriptor) => {
+      created.push(descriptor.id);
+      return makeRuntime();
+    });
+
+    const effect = new AssetLayerEffect();
+    effect.create(makeContext({
+      assets: [
+        { id: "video", kind: "video", order: 2, src: "/video.mp4" },
+        { id: "image", kind: "image", order: 1, src: "/image.jpg" }
+      ]
+    }));
+
+    expect(created).toEqual(["image", "video"]);
+
+    effect.dispose();
+  });
+
+  it("maps the trigger rect once and updates all child assets with shared bounds", () => {
+    const updates: Array<Parameters<AssetRuntime["update"]>[0]> = [];
+    setAssetLayerRuntimeFactoryForTests(() => makeRuntime({ update: (bounds) => updates.push(bounds) }));
+
+    const element = document.createElement("section");
+    const getBoundingClientRect = vi.spyOn(element, "getBoundingClientRect").mockReturnValue({
+      bottom: 450,
+      height: 300,
+      left: 250,
+      right: 750,
+      top: 150,
+      width: 500,
+      x: 250,
+      y: 150,
+      toJSON: () => ({})
+    });
+
+    const scene = new THREE.Scene();
+    const effect = new AssetLayerEffect();
+    effect.create(makeContext({
+      assets: [
+        { id: "image", kind: "image", src: "/image.jpg" },
+        { id: "video", kind: "video", src: "/video.mp4" }
+      ]
+    }, element, scene));
+
+    effect.update(makeSnapshot(element, { progress: 0.25 }), makeRenderContext({ scene }));
+
+    expect(getBoundingClientRect).toHaveBeenCalledOnce();
+    expect(updates).toHaveLength(2);
+    expect(updates[0]).toEqual(updates[1]);
+    expect(updates[0]?.center.x).toBeCloseTo(0);
+    expect(updates[0]?.center.y).toBeCloseTo(0);
+    expect(updates[0]?.size.width).toBeCloseTo(500);
+    expect(updates[0]?.size.height).toBeCloseTo(300);
+
+    effect.dispose();
+  });
+
+  it("disposes every child asset", () => {
+    const disposers = [vi.fn(), vi.fn()];
+    setAssetLayerRuntimeFactoryForTests(() => makeRuntime({ dispose: disposers.shift() }));
+
+    const effect = new AssetLayerEffect();
+    effect.create(makeContext({
+      assets: [
+        { id: "image", kind: "image", src: "/image.jpg" },
+        { id: "video", kind: "video", src: "/video.mp4" }
+      ]
+    }));
+
+    effect.dispose();
+
+    expect(disposers).toHaveLength(0);
+  });
+});
+
+function makeContext(
+  params: Record<string, unknown>,
+  element: HTMLElement = document.createElement("section"),
+  scene: THREE.Scene = new THREE.Scene()
+): EffectContext {
+  return {
+    element,
+    params,
+    renderer: {} as THREE.WebGLRenderer,
+    scene
+  };
+}
+
+function makeRuntime(overrides: Partial<AssetRuntime> = {}): AssetRuntime {
+  return {
+    dispose: vi.fn(),
+    object: new THREE.Object3D(),
+    update: vi.fn(),
+    ...overrides
+  };
+}

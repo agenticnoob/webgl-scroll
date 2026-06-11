@@ -1,4 +1,5 @@
 import { registerEffect, resolveEffect } from "@webgl-scroll/core";
+import { AssetLayerEffect } from "./assets/assetLayerEffect";
 import { FadeTitleEffect } from "./fadeTitleEffect";
 import { PixelatedWipeEffect } from "./pixelatedWipeEffect";
 
@@ -9,6 +10,10 @@ import { PixelatedWipeEffect } from "./pixelatedWipeEffect";
  * Subsequent calls are no-ops (guarded by `resolveEffect`).
  */
 export function registerBuiltinEffects(): void {
+  if (!resolveEffect("asset-layer")) {
+    registerEffect({ klass: AssetLayerEffect, type: "asset-layer" });
+  }
+
   if (!resolveEffect("fade-title")) {
     registerEffect({ klass: FadeTitleEffect, type: "fade-title" });
   }
