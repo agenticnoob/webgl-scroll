@@ -3,6 +3,7 @@ import {
   type TriggerSnapshot,
   type WebGLScrollTriggerSnapshot
 } from "./effectTypes";
+import { createDefaultPointerState, type WebGLPointerState } from "./pointerState";
 
 // ---------------------------------------------------------------------------
 // WebGLStateTree
@@ -28,6 +29,9 @@ export class WebGLStateTree {
 
   /** Whether reduced motion preference is active. */
   reducedMotion = false;
+
+  /** Latest normalized pointer state, shared by effects that need input. */
+  pointer: WebGLPointerState = createDefaultPointerState();
 
   // -- internal storage -----------------------------------------------------
 
@@ -110,6 +114,7 @@ export class WebGLStateTree {
     this.elements.clear();
     this.paramsStore.clear();
     this.reducedMotion = false;
+    this.pointer = createDefaultPointerState();
     this.bumpVersion();
   }
 

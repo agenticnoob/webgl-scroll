@@ -7,10 +7,11 @@ Use this as the default route for agentic work in this repo.
 3. Read `docs/package-boundaries.md` and keep the change in the narrowest owning package.
 4. Pick an existing effect from `docs/effects.md` before adding new runtime code.
 5. Use `asset-layer` for DOM-anchored image, video, or GLB media before writing app-local Three.js glue.
-6. Use `examples/next-basic` or `examples/react-basic` for runtime validation.
-7. Update docs, examples, and tests in the same change when public effect params or behavior change.
+6. Use `glb-particles` when the GLB itself should become a pointer-driven particle simulation.
+7. Use `examples/next-basic` or `examples/react-basic` for runtime validation.
+8. Update docs, examples, and tests in the same change when public effect params or behavior change.
 
-Do not add a second renderer loop, a second scroll timing owner, copied app source, React imports in effects, or visual effect code in core.
+Do not add a second renderer loop, a second scroll timing owner, copied app source, React imports in effects, per-effect pointer listeners, or visual effect code in core.
 
 ## Asset Layers
 
@@ -55,3 +56,30 @@ Placement is two-tier:
 - `asset.placement` is a partial override for one asset. Use it to place multiple assets independently while sharing the same trigger, progress, and visibility.
 
 Keep media declarations in effect params. Do not add React or Next.js imports to `@webgl-scroll/effects`, and do not move app-specific assets into package source.
+
+## GLB Particles
+
+Use `glb-particles` when a model should be sampled into GPU particles and respond to shared pointer input:
+
+```tsx
+<WebGLEngineTrigger
+  trigger="particle-model"
+  effects={[
+    {
+      type: "glb-particles",
+      layer: "background",
+      params: {
+        src: "/models/human.glb",
+        particleTextureSize: 32,
+        placement: { anchor: "element", fit: "contain", x: 0.84, y: 0.72, width: 0.3, height: 0.52 },
+        pointerRadius: 0.28,
+        scatterForce: 3.2,
+        returnForce: 0.78,
+        damping: 0.92
+      }
+    }
+  ]}
+/>
+```
+
+The app should install one `createWebGLPointerBridge` and update it from `WebGLRendererLoop.addBeforeRenderHook`. If browser validation sees no movement after installing local tarballs, inspect live shader uniforms and clear stale dev-server caches before changing effect params.

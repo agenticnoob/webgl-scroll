@@ -4,8 +4,8 @@ Use this when deciding which package owns a change.
 
 | Need | Install | Why |
 | --- | --- | --- |
-| Runtime, registry, state tree, custom effects | `@webgl-scroll/core` | Lowest-level WebGL scroll engine |
-| Asset layers, fade title, and pixelated wipe effects | `@webgl-scroll/effects` | Built-in effects on top of core |
+| Runtime, registry, state tree, pointer input, GPU helpers, custom effects | `@webgl-scroll/core` | Lowest-level WebGL scroll engine |
+| Asset layers, fade title, GLB particles, and pixelated wipe effects | `@webgl-scroll/effects` | Built-in effects on top of core |
 | React trigger components | `@webgl-scroll/react` | React bindings for trigger markup |
 
 ## Core
@@ -15,6 +15,8 @@ Put framework-agnostic runtime mechanics in `@webgl-scroll/core`:
 - DOM scanning and `data-webgl-*` parsing.
 - ScrollTrigger bridge.
 - `WebGLStateTree`.
+- Shared pointer state and `createWebGLPointerBridge`.
+- `GpuSimulationRunner` and render-target pooling primitives.
 - `WebGLEffect`, registry, router, and effect params.
 - `WebGLRendererLoop`.
 
@@ -26,10 +28,12 @@ Put named visual outputs in `@webgl-scroll/effects`:
 
 - `AssetLayerEffect`.
 - `FadeTitleEffect`.
+- `GlbParticlesEffect`.
 - `PixelatedWipeEffect`.
 - Effect shaders, uniforms, and coordinators.
 - Built-in effect registration.
 - Media asset runtimes, DOM-anchored placement helpers, scroll timeline helpers, and GLB disposal utilities.
+- GLB surface sampling, particle texture initialization, simulation/render shaders, and pointer-driven particle behavior.
 
 Effects may import core types and lifecycle APIs. Effects must not import React, Next.js, or host application modules.
 

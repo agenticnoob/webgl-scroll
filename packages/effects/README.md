@@ -2,7 +2,7 @@
 
 Built-in visual effects for `@webgl-scroll/core`.
 
-Use this package when you want ready-made effects such as `asset-layer`, `fade-title`, and `pixelated-wipe` without writing a custom `WebGLEffect`.
+Use this package when you want ready-made effects such as `asset-layer`, `fade-title`, `glb-particles`, and `pixelated-wipe` without writing a custom `WebGLEffect`.
 
 ## Install
 
@@ -49,3 +49,25 @@ npm install @webgl-scroll/core @webgl-scroll/effects three
 The effect maps the trigger element's rect into the shared orthographic WebGL world, updates all assets from the same scroll progress, pauses video in reduced motion, and disposes textures/materials/geometries on teardown.
 
 `params.placement` sets the shared anchor mapping. Each asset can add `placement` as a partial override, so one trigger can independently place image, video, and GLB layers without creating extra scroll triggers.
+
+## GLB Particles
+
+`glb-particles` loads a GLB, samples mesh surfaces into a particle texture, runs GPU ping-pong position/velocity simulation, and uses shared pointer state from `@webgl-scroll/core` for visible scatter/return interaction:
+
+```ts
+{
+  type: "glb-particles",
+  layer: "background",
+  params: {
+    src: "/models/human.glb",
+    particleTextureSize: 32,
+    placement: { anchor: "element", fit: "contain", x: 0.84, y: 0.72, width: 0.3, height: 0.52 },
+    pointerRadius: 0.28,
+    scatterForce: 3.2,
+    returnForce: 0.78,
+    damping: 0.92
+  }
+}
+```
+
+The host app should install one `createWebGLPointerBridge()` and update it from the renderer loop before-render hook. Do not add per-effect pointer listeners.

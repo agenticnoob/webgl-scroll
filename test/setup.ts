@@ -1,8 +1,21 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
 
-const requestAnimationFrameMock = vi.fn((_callback: FrameRequestCallback) => 0);
-const cancelAnimationFrameMock = vi.fn((_handle: number) => undefined);
+const pendingAnimationFrames = new Set<number>();
+const requestAnimationFrameMock = vi.fn((callback: FrameRequestCallback) => {
+  const handle = window.setTimeout(() => {
+    pendingAnimationFrames.delete(handle);
+    callback(performance.now());
+  }, 0);
+
+  pendingAnimationFrames.add(handle);
+
+  return handle;
+});
+const cancelAnimationFrameMock = vi.fn((handle: number) => {
+  pendingAnimationFrames.delete(handle);
+  window.clearTimeout(handle);
+});
 
 Object.defineProperty(window, "requestAnimationFrame", {
   configurable: true,
@@ -56,4 +69,11 @@ Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
     })),
     scale: vi.fn()
   }))
+});
+
+afterEach(() => {
+  for (const handle of pendingAnimationFrames) {
+    window.clearTimeout(handle);
+  }
+  pendingAnimationFrames.clear();
 });

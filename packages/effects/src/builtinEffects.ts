@@ -1,6 +1,7 @@
 import { registerEffect, resolveEffect } from "@webgl-scroll/core";
 import { AssetLayerEffect } from "./assets/assetLayerEffect";
 import { FadeTitleEffect } from "./fadeTitleEffect";
+import { GlbParticlesEffect } from "./glbParticles/glbParticlesEffect";
 import { PixelatedWipeEffect } from "./pixelatedWipeEffect";
 
 /**
@@ -16,6 +17,10 @@ export function registerBuiltinEffects(): void {
 
   if (!resolveEffect("fade-title")) {
     registerEffect({ klass: FadeTitleEffect, type: "fade-title" });
+  }
+
+  if (!resolveEffect("glb-particles")) {
+    registerEffect({ klass: GlbParticlesEffect, type: "glb-particles" });
   }
 
   if (!resolveEffect("pixelated-wipe")) {

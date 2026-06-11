@@ -278,10 +278,11 @@ describe("WebGLStateTree", () => {
 
   // -- reset ----------------------------------------------------------------
 
-  it("reset clears triggers, indexes, elements, and reducedMotion", () => {
+  it("reset clears triggers, indexes, elements, reducedMotion, and pointer state", () => {
     tree.reducedMotion = true;
     tree.registerElement("a", document.createElement("div"), { fg: "#fff" });
     tree.set("a", makeRaw({ id: "a", scene: "build", role: "cut" }));
+    tree.pointer = { ...tree.pointer, isInside: true, isMoving: true, x: 0.5, y: 0.5 };
 
     tree.reset();
 
@@ -290,6 +291,18 @@ describe("WebGLStateTree", () => {
     expect(tree.getByEffect("pixelated-wipe")).toEqual([]);
     expect(tree.getSnapshot("a")).toBeUndefined();
     expect(tree.reducedMotion).toBe(false);
+    expect(tree.pointer).toEqual({
+      idleMs: 0,
+      isInside: false,
+      isMoving: false,
+      lastMoveAt: 0,
+      ndcX: -1,
+      ndcY: 1,
+      velocityX: 0,
+      velocityY: 0,
+      x: 0,
+      y: 0
+    });
   });
 
   // -- delete ---------------------------------------------------------------

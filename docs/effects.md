@@ -97,6 +97,69 @@ Reduced motion:
 
 - Effect hides the animated layer and leaves DOM content readable.
 
+## GlbParticlesEffect
+
+Use when:
+
+- A GLB should be sampled into GPU particles instead of rendered as a normal mesh.
+- Pointer movement should scatter particles and idle state should let them return to the sampled model shape.
+- The host app already owns one shared renderer loop and can install `createWebGLPointerBridge`.
+
+Avoid when:
+
+- A normal GLB mesh layer is sufficient; use `asset-layer` with `kind: "glb"` for that.
+- The interaction needs per-object DOM pointer listeners.
+- Reduced-motion users need the same animated response.
+
+Required DOM:
+
+```tsx
+<WebGLEngineTrigger
+  effects={[
+    {
+      type: "glb-particles",
+      layer: "background",
+      params: {
+        src: "/models/human.glb",
+        particleTextureSize: 32,
+        placement: { anchor: "element", fit: "contain", x: 0.84, y: 0.72, width: 0.3, height: 0.52 },
+        pointSize: 2.2,
+        pointerRadius: 0.28,
+        scatterForce: 3.2,
+        returnForce: 0.78,
+        damping: 0.92
+      }
+    }
+  ]}
+  trigger="particle-model"
+>
+  <section>Model</section>
+</WebGLEngineTrigger>
+```
+
+Params:
+
+- `src`: GLB URL.
+- `particleTextureSize`: square particle texture size. `32` gives about 1k particles and is the recommended validation default.
+- `placement`: DOM anchor mapping shared with asset placement semantics.
+- `pointSize`: rendered point size.
+- `pointerRadius`: local particle-space interaction radius.
+- `scatterForce`: simulation force away from the pointer.
+- `returnForce`: force pulling particles back to sampled origins.
+- `damping`: velocity damping per frame.
+- `color`: particle color.
+
+Runtime:
+
+- The effect samples GLB mesh surfaces, normalizes origins, creates origin/position/velocity textures, runs GPU velocity and position passes, then renders one `Points` object.
+- Pointer state comes from `sharedStateTree.pointer`, normally written by one app-level `createWebGLPointerBridge({ target: canvas })`.
+- The render shader includes a small pointer displacement fallback so interaction remains visible even when simulation movement is subtle.
+
+Troubleshooting:
+
+- If the package output contains pointer uniforms but the browser does not, clear the host app's dev cache and restart its dev server.
+- Inspect `uPointer`, `uPointerStrength`, `uPointerRadius`, and `uRenderScatter` on the live `Points` material before tuning params.
+
 ## PixelatedWipeEffect
 
 Use when:
