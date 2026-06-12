@@ -76,4 +76,18 @@ describe("snapshotToTrigger", () => {
 
     expect(result.effect).toBe("unknown");
   });
+
+  it("keeps raw lifecycle config separate from runtime lifecycle snapshots", () => {
+    const element = document.createElement("div");
+    const result = snapshotToTrigger(
+      {
+        ...baseSnapshot,
+        lifecycle: { preloadMargin: "120vh", unloadMargin: "300vh" }
+      },
+      element
+    );
+
+    expect(result.lifecycle).toBeUndefined();
+    expect(result.lifecycleConfigInput).toEqual({ preloadMargin: "120vh", unloadMargin: "300vh" });
+  });
 });

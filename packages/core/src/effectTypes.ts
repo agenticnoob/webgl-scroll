@@ -67,7 +67,9 @@ export type TriggerSnapshot = Omit<TriggerMetadata, "lifecycle"> & {
   /** Whether the trigger element is currently within the viewport. */
   isActive: boolean;
   /** Runtime lifecycle phase snapshot. */
-  lifecycle?: WebGLEffectLifecycleInput | WebGLEffectLifecycleSnapshot;
+  lifecycle?: WebGLEffectLifecycleSnapshot;
+  /** Raw lifecycle overrides declared on the trigger or effect. */
+  lifecycleConfigInput?: WebGLEffectLifecycleInput;
   /** Normalized lifecycle configuration used to compute lifecycle phase. */
   lifecycleConfig?: WebGLEffectLifecycleConfig;
   /** Scroll velocity in px/s (positive = scrolling down). */
@@ -207,7 +209,7 @@ export function snapshotToTrigger(
     end: snapshot.end,
     id: snapshot.id,
     isActive: snapshot.isActive,
-    lifecycle: snapshot.lifecycle,
+    lifecycleConfigInput: snapshot.lifecycle,
     params,
     progress: snapshot.progress,
     scene: snapshot.scene,

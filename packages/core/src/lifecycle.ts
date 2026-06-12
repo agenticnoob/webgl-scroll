@@ -1,4 +1,5 @@
 export type LifecyclePhase = "idle" | "preloading" | "ready" | "active" | "suspended" | "disposed";
+export type PreloadStatus = "idle" | "loading" | "ready" | "failed";
 
 export type LifecycleMargin = number | `${number}px` | `${number}vh` | `${number}vw` | `${number}%`;
 
@@ -33,6 +34,9 @@ export type WebGLEffectLifecycleSnapshot = {
   isWithinSuspend: boolean;
   isWithinUnload: boolean;
   phase: LifecyclePhase;
+  preloadErrorMessage?: string;
+  preloadFailed?: boolean;
+  preloadStatus?: PreloadStatus;
 };
 
 export const DEFAULT_WEBGL_EFFECT_LIFECYCLE: WebGLEffectLifecycleConfig = {

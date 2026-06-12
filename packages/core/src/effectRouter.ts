@@ -1,5 +1,32 @@
 import { applyDefaults, resolveEffect, validateParams } from "./effectRegistry";
+import type { WebGLAssetResolver } from "./assets";
 import type { EffectContext, RenderContext, TriggerSnapshot, WebGLEffect } from "./effectTypes";
+import {
+  computeElementViewportDistance,
+  isWithinLifecycleMargin,
+  normalizeLifecycleConfig,
+  type LifecyclePhase,
+  type PreloadStatus,
+  type WebGLEffectLifecycleConfig,
+  type WebGLEffectLifecycleInput,
+  type WebGLEffectLifecycleSnapshot
+} from "./lifecycle";
+
+type EffectRouterEntry = {
+  effect: WebGLEffect;
+  idleSince?: number;
+  phase: LifecyclePhase;
+  preloadErrorMessage?: string;
+  preloadPromise?: Promise<void>;
+  preloadStatus: PreloadStatus;
+  wasActive: boolean;
+};
+
+export type EffectRouterOptions = {
+  assetResolver?: WebGLAssetResolver;
+  getNow?: () => number;
+  lifecycle?: WebGLEffectLifecycleInput;
+};
 
 // ---------------------------------------------------------------------------
 // EffectRouter
@@ -16,7 +43,17 @@ import type { EffectContext, RenderContext, TriggerSnapshot, WebGLEffect } from 
  *   - Dispose instances for triggers that disappeared.
  */
 export class EffectRouter {
-  private instances = new Map<string, { effect: WebGLEffect; wasActive: boolean }>();
+  private instances = new Map<string, EffectRouterEntry>();
+  private activePreloads = 0;
+  private readonly assetResolver?: WebGLAssetResolver;
+  private readonly getNow: () => number;
+  private readonly lifecycle: WebGLEffectLifecycleInput;
+
+  constructor(options: EffectRouterOptions = {}) {
+    this.assetResolver = options.assetResolver;
+    this.getNow = options.getNow ?? (() => performance.now());
+    this.lifecycle = options.lifecycle ?? {};
+  }
 
   /**
    * Route all current trigger snapshots through their matching effects.
@@ -32,9 +69,25 @@ export class EffectRouter {
       seen.add(snapshot.id);
 
       let entry = this.instances.get(snapshot.id);
+      const { config, lifecycle } = this.buildLifecycleSnapshot(snapshot, renderContext, entry);
+      const nextSnapshot: TriggerSnapshot = {
+        ...snapshot,
+        lifecycle,
+        lifecycleConfig: config
+      };
+
+      if (!entry && lifecycle.phase === "idle") {
+        continue;
+      }
+
+      if (entry && lifecycle.phase === "disposed") {
+        entry.effect.dispose();
+        this.instances.delete(snapshot.id);
+        continue;
+      }
 
       if (!entry) {
-        entry = this.createInstance(snapshot, renderContext);
+        entry = this.createInstance(nextSnapshot, renderContext);
 
         if (!entry) {
           continue;
@@ -43,15 +96,18 @@ export class EffectRouter {
         this.instances.set(snapshot.id, entry);
       }
 
-      // Fire enter/leave hooks on activity transitions.
-      if (snapshot.isActive && !entry.wasActive) {
-        entry.effect.onEnter?.(snapshot);
-      } else if (!snapshot.isActive && entry.wasActive) {
-        entry.effect.onLeave?.(snapshot);
+      if (lifecycle.phase !== "active" && entry.idleSince == null) {
+        entry.idleSince = this.getNow();
       }
 
+      if (lifecycle.phase === "active") {
+        entry.idleSince = undefined;
+      }
+
+      this.dispatchLifecycle(entry, nextSnapshot, renderContext);
       entry.wasActive = snapshot.isActive;
-      entry.effect.update(snapshot, renderContext);
+      entry.phase = nextSnapshot.lifecycle?.phase ?? entry.phase;
+      entry.effect.update(nextSnapshot, renderContext);
     }
 
     // Dispose effects whose triggers no longer exist.
@@ -99,7 +155,7 @@ export class EffectRouter {
   private createInstance(
     snapshot: TriggerSnapshot,
     renderContext: RenderContext
-  ): { effect: WebGLEffect; wasActive: boolean } | undefined {
+  ): EffectRouterEntry | undefined {
     const registration = resolveEffect(snapshot.effect);
 
     if (!registration) {
@@ -116,6 +172,7 @@ export class EffectRouter {
     const effect = new registration.klass();
 
     const context: EffectContext = {
+      assetResolver: this.assetResolver,
       element: snapshot.element,
       params,
       renderer: renderContext.renderer,
@@ -124,6 +181,166 @@ export class EffectRouter {
 
     effect.create(context);
 
-    return { effect, wasActive: false };
+    return { effect, phase: "idle", preloadStatus: "idle", wasActive: false };
   }
+
+  private buildLifecycleSnapshot(
+    snapshot: TriggerSnapshot,
+    renderContext: RenderContext,
+    entry: EffectRouterEntry | undefined
+  ): { config: WebGLEffectLifecycleConfig; lifecycle: WebGLEffectLifecycleSnapshot } {
+    const config = normalizeLifecycleConfig(
+      this.lifecycle,
+      snapshot.lifecycleConfigInput,
+      readEffectLifecycle(snapshot.params)
+    );
+    const rect = snapshot.element.getBoundingClientRect();
+    const distancePx = computeElementViewportDistance(rect, renderContext.viewport);
+    const isWithinPreload = isWithinLifecycleMargin(distancePx, config.preloadMargin, renderContext.viewport);
+    const isWithinSuspend = isWithinLifecycleMargin(distancePx, config.suspendMargin, renderContext.viewport);
+    const isWithinUnload = isWithinLifecycleMargin(distancePx, config.unloadMargin, renderContext.viewport);
+    const now = this.getNow();
+    const idleMs = entry?.idleSince == null ? 0 : Math.max(now - entry.idleSince, 0);
+    const phase = choosePhase({
+      entryPhase: entry?.phase,
+      idleMs,
+      isActive: snapshot.isActive,
+      isWithinPreload,
+      isWithinSuspend,
+      isWithinUnload,
+      minIdleMs: config.minIdleMs,
+      preloadStatus: entry?.preloadStatus ?? "idle"
+    });
+
+    return {
+      config,
+      lifecycle: {
+        distancePx,
+        idleMs,
+        isWithinPreload,
+        isWithinSuspend,
+        isWithinUnload,
+        phase,
+        preloadStatus: entry?.preloadStatus ?? "idle",
+        ...(entry?.preloadErrorMessage
+          ? {
+              preloadErrorMessage: entry.preloadErrorMessage,
+              preloadFailed: true
+            }
+          : { preloadFailed: false })
+      }
+    };
+  }
+
+  private dispatchLifecycle(
+    entry: EffectRouterEntry,
+    snapshot: TriggerSnapshot,
+    renderContext: RenderContext
+  ): void {
+    if (
+      snapshot.lifecycle?.phase === "preloading" &&
+      entry.preloadStatus !== "loading" &&
+      entry.preloadStatus !== "ready" &&
+      !entry.preloadPromise
+    ) {
+      const maxConcurrentPreloads = snapshot.lifecycleConfig?.maxConcurrentPreloads ?? 0;
+
+      if (this.activePreloads < maxConcurrentPreloads) {
+        this.activePreloads += 1;
+        entry.preloadStatus = "loading";
+
+        let preloadResult: void | Promise<void>;
+
+        try {
+          preloadResult = entry.effect.onPreload?.(snapshot, renderContext);
+        } catch (error) {
+          preloadResult = Promise.reject(error);
+        }
+
+        entry.preloadPromise = Promise.resolve(preloadResult)
+          .then(() => {
+            entry.preloadErrorMessage = undefined;
+            entry.preloadStatus = "ready";
+            if (entry.phase === "preloading") {
+              entry.phase = "ready";
+            }
+          })
+          .catch((error: unknown) => {
+            entry.preloadErrorMessage = formatPreloadError(error);
+            entry.preloadStatus = "failed";
+          })
+          .finally(() => {
+            this.activePreloads = Math.max(this.activePreloads - 1, 0);
+            entry.preloadPromise = undefined;
+          });
+      }
+    }
+
+    if (snapshot.isActive && !entry.wasActive) {
+      entry.effect.onEnter?.(snapshot);
+    } else if (!snapshot.isActive && entry.wasActive) {
+      entry.effect.onLeave?.(snapshot);
+    }
+
+    if (snapshot.lifecycle?.phase === "suspended" && entry.phase !== "suspended") {
+      entry.effect.onSuspend?.(snapshot);
+    }
+  }
+}
+
+function readEffectLifecycle(params: Record<string, unknown>): WebGLEffectLifecycleInput {
+  const lifecycle = params.lifecycle;
+
+  return typeof lifecycle === "object" && lifecycle !== null && !Array.isArray(lifecycle)
+    ? (lifecycle as WebGLEffectLifecycleInput)
+    : {};
+}
+
+function formatPreloadError(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === "string" && error) {
+    return error;
+  }
+
+  return "Effect preload failed";
+}
+
+function choosePhase(input: {
+  entryPhase?: LifecyclePhase;
+  idleMs: number;
+  isActive: boolean;
+  isWithinPreload: boolean;
+  isWithinSuspend: boolean;
+  isWithinUnload: boolean;
+  minIdleMs: number;
+  preloadStatus: PreloadStatus;
+}): LifecyclePhase {
+  if (input.isActive) {
+    return "active";
+  }
+
+  if (!input.isWithinUnload && input.idleMs >= input.minIdleMs) {
+    return "disposed";
+  }
+
+  if (input.entryPhase === "active") {
+    return input.isWithinSuspend || input.isWithinUnload ? "suspended" : "idle";
+  }
+
+  if (input.isWithinPreload) {
+    return input.preloadStatus === "ready" ? "ready" : "preloading";
+  }
+
+  if (input.entryPhase === "suspended") {
+    return input.isWithinSuspend || input.isWithinUnload ? "suspended" : "idle";
+  }
+
+  if (input.entryPhase === "ready" || input.entryPhase === "preloading") {
+    return input.isWithinSuspend || input.isWithinUnload ? "suspended" : "idle";
+  }
+
+  return "idle";
 }

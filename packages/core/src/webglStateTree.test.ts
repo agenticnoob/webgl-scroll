@@ -203,7 +203,8 @@ describe("WebGLStateTree", () => {
 
       const snapshot = tree.getSnapshot("a");
 
-      expect(snapshot!.lifecycle).toEqual({
+      expect(snapshot!.lifecycle).toBeUndefined();
+      expect(snapshot!.lifecycleConfigInput).toEqual({
         minIdleMs: 8000,
         preloadMargin: "120vh",
         unloadMargin: "300vh"
