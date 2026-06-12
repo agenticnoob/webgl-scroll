@@ -1,3 +1,4 @@
+export * from "./assets";
 export * from "./domEffectParser";
 export * from "./effectRegistry";
 export * from "./effectRouter";
