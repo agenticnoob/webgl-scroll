@@ -1,6 +1,6 @@
 {
   "name": "@webgl-scroll/effects",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Built-in WebGL scroll effects for @webgl-scroll/core.",
   "type": "module",
   "repository": {
@@ -25,7 +25,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
-    "@webgl-scroll/core": "^0.1.0",
+    "@webgl-scroll/core": "^0.2.0",
     "three": "^0.184.0"
   }
 }

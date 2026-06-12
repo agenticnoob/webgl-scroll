@@ -5,6 +5,7 @@ Date: 2026-06-12
 ## Current State
 
 - Branch: `codex/asset-layer`.
+- Published package metadata is aligned on `0.2.0` across `@webgl-scroll/core`, `@webgl-scroll/effects`, `@webgl-scroll/react`, examples, lockfile, and README.
 - `@webgl-scroll/core` owns DOM scanning, ScrollTrigger bridge, state tree, shared pointer input, GPU simulation helpers, effect registry/router, and renderer loop.
 - `@webgl-scroll/effects` owns built-in visual effects: `asset-layer`, `fade-title`, `pixelated-wipe`, and `glb-particles`.
 - `@webgl-scroll/react` owns JSX serialization through `WebGLEngineTrigger`.
@@ -21,6 +22,7 @@ The latest browser issue was not a package shader bug. The host app's `.next-dev
 ## Validation
 
 - New focused tests cover `glbParticles/pointerMapping.ts`, `glbParticles/simulationRuntime.ts`, and `pixelatedWipeCoordinator.ts`.
+- `packages/versionConsistency.test.ts` guards the `0.2.0` release line and internal `@webgl-scroll/core` peer ranges.
 - Existing `glbParticlesEffect.test.ts` and `pixelatedWipeEffect.test.ts` pass after the split.
 - `npm run typecheck` and `npm run build` pass in this monorepo after the package split.
 

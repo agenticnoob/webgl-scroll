@@ -71,7 +71,7 @@ See [docs/package-boundaries.md](docs/package-boundaries.md).
 
 ## Status
 
-`0.1.0` is the first public release line. Current development on `codex/asset-layer` adds shared pointer input, GPU simulation helpers, `glb-particles`, and declarative object transform support for particle GLBs; validate unpublished package builds in a host app by reinstalling local tarballs and clearing stale dev-server caches.
+`0.2.0` is the current public validation line. It includes `asset-layer`, shared pointer input, GPU simulation helpers, `glb-particles`, host-managed asset prefetch hooks, and declarative object transform support for particle GLBs. Validate unpublished package builds in a host app by reinstalling local tarballs and clearing stale dev-server caches.
 
 ## License
 
