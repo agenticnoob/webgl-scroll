@@ -85,7 +85,7 @@ See [docs/package-boundaries.md](docs/package-boundaries.md).
 
 ## Status
 
-`0.1.0` is the first public release line. Current development on `codex/lifecycle-host-prefetch` adds lifecycle-distance scheduling, host-managed asset resolver support, built-in asset manifest helpers, and lifecycle-aware `asset-layer` / `glb-particles` loading. Validate unpublished package builds in a host app by reinstalling local tarballs and clearing stale dev-server caches.
+`0.1.0` is the first public release line. Current development on `codex/lifecycle-host-prefetch` has implemented lifecycle-distance scheduling, host-managed asset resolver support, built-in asset manifest helpers, and lifecycle-aware `asset-layer` / `glb-particles` loading. Codex Web has validated the unpublished package build through local tarballs; publish follow-up should merge this branch into the release line, cut the next `@webgl-scroll/*` version, then move Codex Web back to published npm packages.
 
 ## License
 

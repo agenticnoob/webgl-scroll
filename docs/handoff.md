@@ -16,7 +16,7 @@ Date: 2026-06-12
 
 ## Validation App Result
 
-Codex Web validates this package set by installing local tarballs with `npm install --no-save`. The `TREE` specimen uses `/glb/human_2.glb` with `particleTextureSize: 32` and object-level `transform` config for static angle plus slow Y-axis auto-rotation.
+Codex Web validates this package set by installing local tarballs with `npm install --no-save`. The `TREE` specimen uses `/glb/human_2.glb` with `particleTextureSize: 32`, object-level `transform` config for static angle plus slow Y-axis auto-rotation, explicit lifecycle margins, and host-owned prefetch/cache wired to `assetResolver`.
 
 The latest browser issue was not a package shader bug. The host app's `.next-dev` cache was stale and served an older `glb-particles` bundle without pointer uniforms. Clearing `.next-dev` and restarting Next exposed `uPointer`, `uPointerRadius`, `uPointerStrength`, and `uRenderScatter` on the live `Points` material; user validation then confirmed visible pointer-driven movement.
 
@@ -26,10 +26,13 @@ The latest browser issue was not a package shader bug. The host app's `.next-dev
 - Lifecycle tests cover config parsing, distance phase scheduling, preload concurrency, retry diagnostics, React lifecycle serialization, asset manifest extraction, lifecycle-aware `asset-layer`, and lifecycle-aware `glb-particles`.
 - Existing `glbParticlesEffect.test.ts` and `pixelatedWipeEffect.test.ts` pass after the split.
 - `npm run typecheck` and `npm run build` pass in this monorepo after the package split.
+- Codex Web local tarball validation reached `npm run check`, production build, and browser smoke with no runtime issues reported after the stale `.next-dev` cache was cleared.
 
 ## Do Next
 
-- Validate the lifecycle/prefetch path in Codex Web by installing local tarballs with `npm install --no-save`, wiring app-owned prefetch/cache to `assetResolver`, and declaring lifecycle margins on the specimen trigger.
+- Merge or open a PR from `codex/lifecycle-host-prefetch` into the package release line.
+- Run final release-branch verification before publishing the next `@webgl-scroll/*` version.
+- After publish, update Codex Web from temporary local tarball validation back to the published npm packages and rerun its check/browser smoke.
 - Consider making render-shader displacement a first-class public param instead of deriving it from `scatterForce`.
 - Add a browser/example validation path for lifecycle diagnostics; static tests do not catch stale host bundles or visual interaction issues.
 - Do not add per-effect pointer listeners or another renderer loop.
