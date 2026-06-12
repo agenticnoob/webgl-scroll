@@ -2,6 +2,7 @@ export * from "./assets/assetLayerEffect";
 export * from "./assets/assetRuntime";
 export * from "./assets/glbAsset";
 export * from "./assets/imageAsset";
+export * from "./assets/manifest";
 export * from "./assets/params";
 export * from "./assets/rectMapping";
 export * from "./assets/timeline";
