@@ -19,18 +19,20 @@ import {
   type CreateSimulationRunner,
   type GlbParticleSimulationRuntime
 } from "./simulationRuntime";
-import { loadGLBParticleOrigins } from "./surfaceSampler";
+import { loadGLBParticleOrigins, parseGLBParticleOrigins } from "./surfaceSampler";
 import { normalizeGlbParticlesParams, type GlbParticlesParams } from "./types";
 
 type GlbParticlesRuntime = {
   createSimulationRunner: CreateSimulationRunner;
   loadOrigins(src: string, size: number): Promise<Float32Array>;
+  parseOrigins(buffer: ArrayBuffer, size: number): Promise<Float32Array>;
 };
 
 const defaultRuntime: GlbParticlesRuntime = {
   createSimulationRunner: ({ material, size, textureUniformName }) =>
     new GpuSimulationRunner({ material, size, textureUniformName }),
-  loadOrigins: loadGLBParticleOrigins
+  loadOrigins: loadGLBParticleOrigins,
+  parseOrigins: parseGLBParticleOrigins
 };
 
 let runtime: GlbParticlesRuntime = defaultRuntime;
@@ -43,29 +45,57 @@ export class GlbParticlesEffect extends WebGLEffect {
   private params: GlbParticlesParams = normalizeGlbParticlesParams({});
   private points?: THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
   private pointerActivity = 0;
+  private preloadPromise?: Promise<void>;
   private renderMaterial?: THREE.ShaderMaterial;
+  private resolver?: EffectContext["assetResolver"];
   private simulationRuntime?: GlbParticleSimulationRuntime;
   private textures?: ParticleDataTextures;
 
   create(context: EffectContext): void {
     this.params = normalizeGlbParticlesParams(context.params);
+    this.resolver = context.assetResolver;
     this.group.visible = false;
     context.scene.add(this.group);
+  }
 
+  onPreload(_snapshot: TriggerSnapshot, _context: RenderContext): Promise<void> {
     if (!this.params.src) {
-      return;
+      return Promise.resolve();
     }
 
-    void runtime.loadOrigins(this.params.src, this.params.particleTextureSize).then((origins) => {
-      if (this.disposed) {
-        return;
-      }
+    if (this.points || this.preloadPromise) {
+      return this.preloadPromise ?? Promise.resolve();
+    }
 
-      this.createParticles(origins);
-    });
+    this.preloadPromise = this.loadOrigins()
+      .then((origins) => {
+        if (this.disposed) {
+          return;
+        }
+
+        this.createParticles(origins);
+      })
+      .catch((error: unknown) => {
+        this.preloadPromise = undefined;
+        throw error;
+      });
+
+    return this.preloadPromise;
+  }
+
+  onEnter(snapshot: TriggerSnapshot): void {
+    void this.onPreload(snapshot, createFallbackRenderContext()).catch(() => undefined);
+  }
+
+  onSuspend(_snapshot: TriggerSnapshot): void {
+    this.group.visible = false;
   }
 
   update(snapshot: TriggerSnapshot, context: RenderContext): void {
+    if (snapshot.isActive && !this.points) {
+      void this.onPreload(snapshot, context).catch(() => undefined);
+    }
+
     if (
       !this.points ||
       !this.textures ||
@@ -140,7 +170,29 @@ export class GlbParticlesEffect extends WebGLEffect {
     this.textures?.velocityTexture.dispose();
   }
 
+  private async loadOrigins(): Promise<Float32Array> {
+    const resolved = await this.resolver?.resolve({
+      effect: "glb-particles",
+      kind: "glb",
+      src: this.params.src
+    });
+
+    if (resolved?.kind === "arrayBuffer") {
+      return runtime.parseOrigins(resolved.value, this.params.particleTextureSize);
+    }
+
+    if (resolved?.kind === "blob") {
+      return runtime.parseOrigins(await resolved.value.arrayBuffer(), this.params.particleTextureSize);
+    }
+
+    return runtime.loadOrigins(this.params.src, this.params.particleTextureSize);
+  }
+
   private createParticles(origins: Float32Array): void {
+    if (this.points) {
+      return;
+    }
+
     const size = this.params.particleTextureSize;
     this.textures = createParticleDataTextures({ origins, size });
     this.simulationRuntime = createGlbParticleSimulationRuntime({
@@ -154,6 +206,17 @@ export class GlbParticlesEffect extends WebGLEffect {
     this.points.frustumCulled = false;
     this.group.add(this.points);
   }
+}
+
+function createFallbackRenderContext(): RenderContext {
+  return {
+    camera: new THREE.OrthographicCamera(),
+    deltaTime: 0,
+    renderer: {} as THREE.WebGLRenderer,
+    scene: new THREE.Scene(),
+    time: 0,
+    viewport: { height: 0, width: 0 }
+  };
 }
 
 export function setGlbParticlesRuntimeForTests(nextRuntime: Partial<GlbParticlesRuntime>): void {

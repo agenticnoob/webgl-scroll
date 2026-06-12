@@ -155,7 +155,7 @@ export function createVideoAsset(
       material.opacity = opacity;
       mesh.visible = opacity > 0 && !sharedStateTree.reducedMotion;
       if (snapshot.isActive) {
-        void preload();
+        void preload().catch(() => undefined);
       }
       updatePlayback(snapshot);
     },

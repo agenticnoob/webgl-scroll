@@ -71,6 +71,18 @@ afterEach(() => {
 });
 
 describe("GlbParticlesEffect", () => {
+  it("does not load sampled origins during create", () => {
+    const loadOrigins = vi.fn(async () => new Float32Array(32 * 32 * 3));
+    setGlbParticlesRuntimeForTests({ loadOrigins });
+
+    const effect = new GlbParticlesEffect();
+    effect.create(makeContext({ src: "/model.glb" }));
+
+    expect(loadOrigins).not.toHaveBeenCalled();
+
+    effect.dispose();
+  });
+
   it("loads sampled origins, creates one Points object, and runs simulation while active", async () => {
     const step = vi.fn();
     const dispose = vi.fn();
@@ -86,7 +98,7 @@ describe("GlbParticlesEffect", () => {
 
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }, scene));
-    await Promise.resolve();
+    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
 
     expect(scene.children.some((child) => child.type === "Group")).toBe(true);
 
@@ -111,7 +123,7 @@ describe("GlbParticlesEffect", () => {
     setVisibleRect(element);
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }, scene));
-    await Promise.resolve();
+    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
 
     sharedStateTree.pointer = {
       idleMs: 0,
@@ -153,7 +165,7 @@ describe("GlbParticlesEffect", () => {
     setVisibleRect(element);
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }, scene));
-    await Promise.resolve();
+    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
 
     sharedStateTree.pointer = {
       idleMs: 160,
@@ -207,7 +219,7 @@ describe("GlbParticlesEffect", () => {
         scene
       )
     );
-    await Promise.resolve();
+    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
 
     effect.update(makeSnapshot(element), makeRenderContext({ scene, time: 2 }));
 
@@ -233,7 +245,7 @@ describe("GlbParticlesEffect", () => {
 
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }));
-    await Promise.resolve();
+    await effect.onPreload(makeSnapshot(document.createElement("section")), makeRenderContext());
 
     sharedStateTree.reducedMotion = true;
     effect.update(makeSnapshot(document.createElement("section")), makeRenderContext());
@@ -250,10 +262,65 @@ describe("GlbParticlesEffect", () => {
 
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }));
-    await Promise.resolve();
+    await effect.onPreload(makeSnapshot(document.createElement("section")), makeRenderContext());
     effect.dispose();
 
     expect(dispose).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses host-resolved glb buffers during preload", async () => {
+    const resolve = vi.fn().mockResolvedValue({
+      kind: "arrayBuffer",
+      value: new ArrayBuffer(8)
+    });
+    const loadOrigins = vi.fn(async () => new Float32Array(32 * 32 * 3));
+    const parseOrigins = vi.fn(async () => new Float32Array(32 * 32 * 3));
+    setGlbParticlesRuntimeForTests({ loadOrigins, parseOrigins });
+
+    const scene = new THREE.Scene();
+    const element = document.createElement("section");
+    const effect = new GlbParticlesEffect();
+    effect.create({
+      ...makeContext({ src: "/model.glb" }, scene),
+      assetResolver: { resolve }
+    });
+
+    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
+
+    expect(resolve).toHaveBeenCalledWith({
+      effect: "glb-particles",
+      kind: "glb",
+      src: "/model.glb"
+    });
+    expect(parseOrigins).toHaveBeenCalledOnce();
+    expect(loadOrigins).not.toHaveBeenCalled();
+
+    effect.dispose();
+  });
+
+  it("retries preload after a failed origin load", async () => {
+    const loadOrigins = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce(new Float32Array(32 * 32 * 3));
+    setGlbParticlesRuntimeForTests({
+      createSimulationRunner: () => ({ dispose: vi.fn(), step: vi.fn(), texture: new THREE.Texture() }),
+      loadOrigins
+    });
+
+    const effect = new GlbParticlesEffect();
+    effect.create(makeContext({ src: "/model.glb" }));
+
+    await expect(
+      effect.onPreload(makeSnapshot(document.createElement("section")), makeRenderContext())
+    ).rejects.toThrow("network");
+    await expect(
+      effect.onPreload(makeSnapshot(document.createElement("section")), makeRenderContext())
+    ).resolves.toBeUndefined();
+
+    expect(loadOrigins).toHaveBeenCalledTimes(2);
+
+    effect.dispose();
   });
 });
 

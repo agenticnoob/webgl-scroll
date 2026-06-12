@@ -5,10 +5,30 @@ import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 export async function loadGLBParticleOrigins(src: string, size: number): Promise<Float32Array> {
   const loader = new GLTFLoader();
   const gltf = await loader.loadAsync(src);
+
+  return sampleGLBParticleOrigins(gltf.scene, size);
+}
+
+export async function parseGLBParticleOrigins(
+  buffer: ArrayBuffer,
+  size: number
+): Promise<Float32Array> {
+  const loader = new GLTFLoader();
+  const gltf = await new Promise<{ scene: THREE.Object3D }>((resolve, reject) => {
+    loader.parse(buffer, "", resolve, reject);
+  });
+
+  return sampleGLBParticleOrigins(gltf.scene, size);
+}
+
+export function sampleGLBParticleOrigins(
+  scene: THREE.Object3D,
+  size: number
+): Float32Array {
   const meshes: THREE.Mesh[] = [];
 
-  gltf.scene.updateMatrixWorld(true);
-  gltf.scene.traverse((child) => {
+  scene.updateMatrixWorld(true);
+  scene.traverse((child) => {
     const mesh = child as THREE.Mesh;
     if (mesh.isMesh && mesh.geometry) {
       meshes.push(mesh);

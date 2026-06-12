@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { TriggerSnapshot } from "@webgl-scroll/core";
+
 import { createVideoAsset } from "./videoAsset";
 import type { AssetDescriptor } from "./types";
 
@@ -23,6 +25,27 @@ function makeSnapshot(overrides: { isActive?: boolean; progress?: number } = {})
     progress: 0.5,
     ...overrides
   };
+}
+
+function makeTriggerSnapshot(overrides: Partial<TriggerSnapshot> = {}): TriggerSnapshot {
+  return {
+    direction: 0,
+    effect: "asset-layer",
+    element: document.createElement("section"),
+    end: "bottom top",
+    id: "scene:asset:0",
+    isActive: true,
+    params: {},
+    progress: 0.5,
+    scene: "scene",
+    start: "top bottom",
+    velocity: 0,
+    ...overrides
+  };
+}
+
+async function flushPromises(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 afterEach(() => {
@@ -108,5 +131,37 @@ describe("createVideoAsset", () => {
 
     expect(pause).toHaveBeenCalledOnce();
     expect(dispose).toHaveBeenCalledOnce();
+  });
+
+  it("swallows active update preload failures and can retry", async () => {
+    const resolve = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce(undefined);
+    const asset = createVideoAsset(makeVideoDescriptor(), {
+      assetResolver: { resolve }
+    });
+    const load = vi.spyOn(asset.video, "load").mockImplementation(() => undefined);
+    vi.spyOn(asset.video, "play").mockResolvedValue(undefined);
+    vi.spyOn(asset.video, "pause").mockImplementation(() => undefined);
+
+    asset.update(
+      { center: { x: 0, y: 0 }, size: { height: 1, width: 1 } },
+      makeTriggerSnapshot({ isActive: true }),
+      {} as never
+    );
+    await flushPromises();
+
+    asset.update(
+      { center: { x: 0, y: 0 }, size: { height: 1, width: 1 } },
+      makeTriggerSnapshot({ isActive: true }),
+      {} as never
+    );
+    await flushPromises();
+
+    expect(resolve).toHaveBeenCalledTimes(2);
+    expect(load).toHaveBeenCalledOnce();
+
+    asset.dispose();
   });
 });
