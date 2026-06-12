@@ -98,4 +98,38 @@ describe("WebGLEngineTrigger", () => {
     expect(section.hasAttribute("data-webgl-start")).toBe(false);
     expect(section.hasAttribute("data-webgl-end")).toBe(false);
   });
+
+  it("serializes trigger-level lifecycle config", () => {
+    const { container } = render(
+      <WebGLEngineTrigger
+        trigger="tree"
+        lifecycle={{ preloadMargin: "120vh", unloadMargin: "300vh", minIdleMs: 8000 }}
+        effects={[{ type: "fade-title" }]}
+      />
+    );
+
+    const section = container.querySelector("section")!;
+    expect(section.getAttribute("data-webgl-lifecycle")).toBe(
+      JSON.stringify({ preloadMargin: "120vh", unloadMargin: "300vh", minIdleMs: 8000 })
+    );
+  });
+
+  it("serializes effect-level lifecycle config", () => {
+    const { container } = render(
+      <WebGLEngineTrigger
+        trigger="tree"
+        effects={[
+          {
+            type: "glb-particles",
+            lifecycle: { preloadMargin: "180vh", unloadMargin: "350vh" },
+            params: { src: "/glb/human_2.glb" }
+          }
+        ]}
+      />
+    );
+
+    const section = container.querySelector("section")!;
+    const payload = JSON.parse(section.getAttribute("data-webgl-effects") ?? "[]");
+    expect(payload[0].lifecycle).toEqual({ preloadMargin: "180vh", unloadMargin: "350vh" });
+  });
 });
