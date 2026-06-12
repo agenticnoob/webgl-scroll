@@ -39,6 +39,16 @@ describe("registerEffect", () => {
     );
   });
 
+  it("can explicitly ignore duplicate registrations", () => {
+    const first = { create: (context?: unknown) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "stub" };
+    const second = { create: (context?: unknown) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "stub" };
+
+    registerEffect(first);
+    registerEffect(second, { onDuplicate: "ignore" });
+
+    expect(resolveEffect("stub")).toBe(first);
+  });
+
   it("returns undefined for unregistered types", () => {
     expect(resolveEffect("nonexistent")).toBeUndefined();
   });

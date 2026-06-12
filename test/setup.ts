@@ -71,7 +71,12 @@ Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
   }))
 });
 
-afterEach(() => {
+afterEach(async () => {
+  const { ScrollTrigger } = await import("../packages/core/src/gsap");
+
+  ScrollTrigger.clearScrollMemory();
+  ScrollTrigger.disable(true, true);
+
   for (const handle of pendingAnimationFrames) {
     window.clearTimeout(handle);
   }

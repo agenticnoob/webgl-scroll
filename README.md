@@ -86,7 +86,7 @@ See [docs/package-boundaries.md](docs/package-boundaries.md).
 
 ## Status
 
-`0.3.0` is the function-first runtime release line: `WebGLEffect` classes are removed, custom effects use `defineWebGLEffect()`, built-ins register through `builtinEffects()`, and apps should prefer `createWebGLScrollRuntime()` / `<WebGLScrollRuntime />` over local renderer/pointer/router glue.
+`0.3.1` is the function-first runtime release line: `WebGLEffect` classes are removed, custom effects use `defineWebGLEffect()`, built-ins register through `builtinEffects()`, and apps should prefer `createWebGLScrollRuntime()` / `<WebGLScrollRuntime />` over local renderer/pointer/router glue.
 
 ## License
 

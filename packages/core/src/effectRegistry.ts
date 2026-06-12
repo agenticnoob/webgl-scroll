@@ -15,14 +15,25 @@ export type EffectRegistration = WebGLEffectDefinition;
 
 const registrations = new Map<string, EffectRegistration>();
 
+export type RegisterEffectOptions = {
+  onDuplicate?: "ignore" | "throw";
+};
+
 /**
  * Register an effect type so the router can instantiate it when a matching
  * `data-webgl-effect` attribute is found on a trigger element.
  *
  * Throws if the same type is registered twice (prevents silent overrides).
  */
-export function registerEffect(registration: EffectRegistration): void {
+export function registerEffect(
+  registration: EffectRegistration,
+  options: RegisterEffectOptions = {}
+): void {
   if (registrations.has(registration.type)) {
+    if (options.onDuplicate === "ignore") {
+      return;
+    }
+
     throw new Error(
       `[effectRegistry] Effect type "${registration.type}" is already registered.`
     );

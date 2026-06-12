@@ -152,7 +152,7 @@ export function createWebGLScrollRuntime(options: WebGLScrollRuntimeOptions): We
 
       isStarted = true;
       for (const effect of flattenEffects(options.effects ?? [])) {
-        registerEffect(effect);
+        registerEffect(effect, { onDuplicate: "ignore" });
       }
 
       cleanupPointerFrame = rendererLoop.addBeforeRenderHook(pointerBridge.update);

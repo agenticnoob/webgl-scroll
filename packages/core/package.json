@@ -1,6 +1,6 @@
 {
   "name": "@webgl-scroll/core",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Core runtime for composable WebGL scroll effects.",
   "type": "module",
   "repository": {
