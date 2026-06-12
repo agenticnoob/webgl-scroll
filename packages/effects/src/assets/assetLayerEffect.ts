@@ -5,7 +5,7 @@ import {
   WebGLEffect
 } from "@webgl-scroll/core";
 
-import type { AssetRuntime } from "./assetRuntime";
+import type { AssetRuntime, AssetRuntimeFactoryContext } from "./assetRuntime";
 import { createGLBAsset } from "./glbAsset";
 import { createImageAsset } from "./imageAsset";
 import { normalizeAssetLayerParams } from "./params";
@@ -13,7 +13,10 @@ import { mapElementRectToWorld } from "./rectMapping";
 import type { AssetDescriptor, AssetPlacement } from "./types";
 import { createVideoAsset } from "./videoAsset";
 
-type AssetRuntimeFactory = (descriptor: AssetDescriptor) => AssetRuntime;
+type AssetRuntimeFactory = (
+  descriptor: AssetDescriptor,
+  context: AssetRuntimeFactoryContext
+) => AssetRuntime;
 type AssetLayerRuntimeEntry = {
   placement?: Partial<AssetPlacement>;
   runtime: AssetRuntime;
@@ -31,10 +34,31 @@ export class AssetLayerEffect extends WebGLEffect {
     const params = normalizeAssetLayerParams(context.params);
     this.placement = params.placement;
     this.assets = params.assets.map((descriptor) => {
-      const runtime = runtimeFactory(descriptor);
+      const runtime = runtimeFactory(descriptor, {
+        assetResolver: context.assetResolver,
+        renderer: context.renderer
+      });
       context.scene.add(runtime.object);
       return { placement: descriptor.placement, runtime };
     });
+  }
+
+  onPreload(snapshot: TriggerSnapshot, _context: RenderContext): Promise<void> {
+    return Promise.all(
+      this.assets.map((asset) => asset.runtime.preload?.(snapshot))
+    ).then(() => undefined);
+  }
+
+  onEnter(snapshot: TriggerSnapshot): void {
+    for (const asset of this.assets) {
+      void Promise.resolve(asset.runtime.preload?.(snapshot)).catch(() => undefined);
+    }
+  }
+
+  onSuspend(snapshot: TriggerSnapshot): void {
+    for (const asset of this.assets) {
+      asset.runtime.suspend?.(snapshot);
+    }
   }
 
   update(snapshot: TriggerSnapshot, context: RenderContext): void {
@@ -71,13 +95,16 @@ export function resetAssetLayerRuntimeFactoryForTests(): void {
   runtimeFactory = createDefaultRuntime;
 }
 
-function createDefaultRuntime(descriptor: AssetDescriptor): AssetRuntime {
+function createDefaultRuntime(
+  descriptor: AssetDescriptor,
+  context: AssetRuntimeFactoryContext
+): AssetRuntime {
   switch (descriptor.kind) {
     case "image":
-      return createImageAsset(descriptor);
+      return createImageAsset(descriptor, context);
     case "video":
-      return createVideoAsset(descriptor);
+      return createVideoAsset(descriptor, context);
     case "glb":
-      return createGLBAsset(descriptor);
+      return createGLBAsset(descriptor, context);
   }
 }

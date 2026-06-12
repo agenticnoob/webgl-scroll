@@ -3,28 +3,45 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 import { sharedStateTree, type RenderContext, type TriggerSnapshot } from "@webgl-scroll/core";
 
-import type { AssetRuntime } from "./assetRuntime";
+import type { AssetRuntime, AssetRuntimeFactoryContext } from "./assetRuntime";
 import type { WorldBounds } from "./rectMapping";
 import { evaluateAssetOpacity, evaluateScrollTuple } from "./timeline";
 import type { AssetDescriptor } from "./types";
 
-export function createGLBAsset(descriptor: AssetDescriptor): AssetRuntime {
+export function createGLBAsset(
+  descriptor: AssetDescriptor,
+  context: AssetRuntimeFactoryContext = {}
+): AssetRuntime {
   const group = new THREE.Group();
   group.renderOrder = descriptor.order;
 
-  const loader = new GLTFLoader();
   let loadedScene: THREE.Object3D | undefined;
   let disposed = false;
+  let preloadPromise: Promise<void> | undefined;
 
-  loader.load(descriptor.src, (gltf) => {
+  function attachScene(scene: THREE.Object3D): void {
     if (disposed) {
-      disposeObject3D(gltf.scene);
+      disposeObject3D(scene);
       return;
     }
 
-    loadedScene = gltf.scene;
+    loadedScene = scene;
     group.add(loadedScene);
-  });
+  }
+
+  function preload(): Promise<void> {
+    if (loadedScene || preloadPromise) {
+      return preloadPromise ?? Promise.resolve();
+    }
+
+    preloadPromise = loadGLBScene(descriptor, context)
+      .then(attachScene)
+      .catch((error: unknown) => {
+        preloadPromise = undefined;
+        throw error;
+      });
+    return preloadPromise;
+  }
 
   return {
     object: group,
@@ -35,6 +52,7 @@ export function createGLBAsset(descriptor: AssetDescriptor): AssetRuntime {
       }
       group.removeFromParent();
     },
+    preload,
     update(bounds: WorldBounds, snapshot: TriggerSnapshot, _context: RenderContext) {
       const baseScale = Math.min(bounds.size.width, bounds.size.height);
       const transform = descriptor.transform;
@@ -64,6 +82,45 @@ export function createGLBAsset(descriptor: AssetDescriptor): AssetRuntime {
       applyOpacity(group, opacity);
     }
   };
+}
+
+async function loadGLBScene(
+  descriptor: AssetDescriptor,
+  context: AssetRuntimeFactoryContext
+): Promise<THREE.Object3D> {
+  const resolved = await context.assetResolver?.resolve({
+    effect: "asset-layer",
+    id: descriptor.id,
+    kind: "glb",
+    src: descriptor.src
+  });
+
+  if (resolved?.kind === "arrayBuffer") {
+    return parseGLBArrayBuffer(resolved.value);
+  }
+
+  if (resolved?.kind === "blob") {
+    const buffer = await resolved.value.arrayBuffer();
+    return parseGLBArrayBuffer(buffer);
+  }
+
+  return loadGLBFromUrl(descriptor.src);
+}
+
+function loadGLBFromUrl(src: string): Promise<THREE.Object3D> {
+  const loader = new GLTFLoader();
+
+  return new Promise((resolve, reject) => {
+    loader.load(src, (gltf) => resolve(gltf.scene), undefined, reject);
+  });
+}
+
+function parseGLBArrayBuffer(buffer: ArrayBuffer): Promise<THREE.Object3D> {
+  const loader = new GLTFLoader();
+
+  return new Promise((resolve, reject) => {
+    loader.parse(buffer, "", (gltf) => resolve(gltf.scene), reject);
+  });
 }
 
 export function disposeObject3D(object: THREE.Object3D): void {

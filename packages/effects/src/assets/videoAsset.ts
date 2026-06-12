@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import { sharedStateTree, type TriggerSnapshot } from "@webgl-scroll/core";
 
-import type { AssetRuntime } from "./assetRuntime";
+import type { AssetRuntime, AssetRuntimeFactoryContext } from "./assetRuntime";
 import { evaluateAssetOpacity, mapScrollToTime } from "./timeline";
 import type { AssetDescriptor } from "./types";
 
@@ -16,12 +16,14 @@ export type VideoAssetRuntime = AssetRuntime & {
   updatePlayback(snapshot: PlaybackSnapshot): void;
 };
 
-export function createVideoAsset(descriptor: AssetDescriptor): VideoAssetRuntime {
+export function createVideoAsset(
+  descriptor: AssetDescriptor,
+  context: AssetRuntimeFactoryContext = {}
+): VideoAssetRuntime {
   const video = document.createElement("video");
   video.muted = true;
   video.playsInline = true;
-  video.preload = "metadata";
-  video.src = descriptor.src;
+  video.preload = "none";
 
   const texture = new THREE.VideoTexture(video);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -41,6 +43,35 @@ export function createVideoAsset(descriptor: AssetDescriptor): VideoAssetRuntime
 
   let disposed = false;
   let playedOnce = false;
+  let objectUrl: string | undefined;
+  let preloadPromise: Promise<void> | undefined;
+
+  async function preload(): Promise<void> {
+    if (video.currentSrc || video.src || preloadPromise) {
+      return preloadPromise ?? Promise.resolve();
+    }
+
+    preloadPromise = resolveVideoSource(descriptor, context)
+      .then((src) => {
+        if (disposed) {
+          if (src.startsWith("blob:")) {
+            URL.revokeObjectURL(src);
+          }
+          return;
+        }
+
+        objectUrl = src.startsWith("blob:") ? src : undefined;
+        video.preload = "metadata";
+        video.src = src;
+        video.load();
+      })
+      .catch((error: unknown) => {
+        preloadPromise = undefined;
+        throw error;
+      });
+
+    return preloadPromise;
+  }
 
   function updatePlayback(snapshot: PlaybackSnapshot): void {
     const playback = descriptor.playback ?? { mode: "loop-while-visible", startTime: 0 };
@@ -97,10 +128,18 @@ export function createVideoAsset(descriptor: AssetDescriptor): VideoAssetRuntime
       disposed = true;
       video.pause();
       video.removeAttribute("src");
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = undefined;
+      }
       texture.dispose();
       material.dispose();
       mesh.geometry.dispose();
       mesh.removeFromParent();
+    },
+    preload,
+    suspend() {
+      video.pause();
     },
     update(bounds, snapshot) {
       const opacity = snapshot.isActive
@@ -115,8 +154,37 @@ export function createVideoAsset(descriptor: AssetDescriptor): VideoAssetRuntime
       mesh.scale.set(bounds.size.width, bounds.size.height, 1);
       material.opacity = opacity;
       mesh.visible = opacity > 0 && !sharedStateTree.reducedMotion;
+      if (snapshot.isActive) {
+        void preload();
+      }
       updatePlayback(snapshot);
     },
     updatePlayback
   };
+}
+
+async function resolveVideoSource(
+  descriptor: AssetDescriptor,
+  context: AssetRuntimeFactoryContext
+): Promise<string> {
+  const resolved = await context.assetResolver?.resolve({
+    effect: "asset-layer",
+    id: descriptor.id,
+    kind: "video",
+    src: descriptor.src
+  });
+
+  if (resolved?.kind === "blob") {
+    return URL.createObjectURL(resolved.value);
+  }
+
+  if (resolved?.kind === "video" && resolved.value.currentSrc) {
+    return resolved.value.currentSrc;
+  }
+
+  if (resolved?.kind === "video" && resolved.value.src) {
+    return resolved.value.src;
+  }
+
+  return descriptor.src;
 }

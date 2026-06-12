@@ -163,6 +163,68 @@ describe("AssetLayerEffect", () => {
 
     expect(disposers).toHaveLength(0);
   });
+
+  it("forwards lifecycle hooks to child assets", async () => {
+    const preload = vi.fn().mockResolvedValue(undefined);
+    const suspend = vi.fn();
+    setAssetLayerRuntimeFactoryForTests(() => makeRuntime({ preload, suspend }));
+
+    const element = document.createElement("section");
+    const effect = new AssetLayerEffect();
+    const snapshot = makeSnapshot(element);
+    effect.create(makeContext({
+      assets: [
+        { id: "image", kind: "image", src: "/image.jpg" },
+        { id: "video", kind: "video", src: "/video.mp4" }
+      ]
+    }, element));
+
+    await effect.onPreload(snapshot, makeRenderContext());
+    effect.onSuspend(snapshot);
+
+    expect(preload).toHaveBeenCalledTimes(2);
+    expect(preload).toHaveBeenNthCalledWith(1, snapshot);
+    expect(suspend).toHaveBeenCalledTimes(2);
+
+    effect.dispose();
+  });
+
+  it("starts child preloads when entering without waiting for preload range", () => {
+    const preload = vi.fn();
+    setAssetLayerRuntimeFactoryForTests(() => makeRuntime({ preload }));
+
+    const element = document.createElement("section");
+    const effect = new AssetLayerEffect();
+    const snapshot = makeSnapshot(element);
+    effect.create(makeContext({
+      assets: [{ id: "image", kind: "image", src: "/image.jpg" }]
+    }, element));
+
+    effect.onEnter(snapshot);
+
+    expect(preload).toHaveBeenCalledOnce();
+    expect(preload).toHaveBeenCalledWith(snapshot);
+
+    effect.dispose();
+  });
+
+  it("swallows enter fallback preload failures so router preload remains authoritative", async () => {
+    const preload = vi.fn().mockRejectedValue(new Error("network"));
+    setAssetLayerRuntimeFactoryForTests(() => makeRuntime({ preload }));
+
+    const element = document.createElement("section");
+    const effect = new AssetLayerEffect();
+    effect.create(makeContext({
+      assets: [{ id: "image", kind: "image", src: "/image.jpg" }]
+    }, element));
+
+    effect.onEnter(makeSnapshot(element));
+    await Promise.resolve();
+
+    expect(preload).toHaveBeenCalledOnce();
+
+    effect.dispose();
+  });
 });
 
 function makeContext(

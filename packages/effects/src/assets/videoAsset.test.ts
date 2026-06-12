@@ -30,15 +30,41 @@ afterEach(() => {
 });
 
 describe("createVideoAsset", () => {
-  it("creates a muted inline video texture", () => {
+  it("creates a muted inline video texture without starting network preload", () => {
     const asset = createVideoAsset(makeVideoDescriptor());
     vi.spyOn(asset.video, "pause").mockImplementation(() => undefined);
 
     expect(asset.video.muted).toBe(true);
     expect(asset.video.playsInline).toBe(true);
+    expect(asset.video.preload).toBe("none");
+    expect(asset.video.src).toBe("");
+    expect(asset.texture).toBeInstanceOf(THREE.VideoTexture);
+
+    asset.dispose();
+  });
+
+  it("attaches src when preloaded", async () => {
+    const asset = createVideoAsset(makeVideoDescriptor());
+    const load = vi.spyOn(asset.video, "load").mockImplementation(() => undefined);
+    vi.spyOn(asset.video, "pause").mockImplementation(() => undefined);
+
+    await asset.preload?.({
+      direction: 0,
+      effect: "asset-layer",
+      element: document.createElement("section"),
+      end: "bottom top",
+      id: "scene:asset:0",
+      isActive: false,
+      params: {},
+      progress: 0,
+      scene: "scene",
+      start: "top bottom",
+      velocity: 0
+    });
+
     expect(asset.video.preload).toBe("metadata");
     expect(asset.video.src).toContain("/video.mp4");
-    expect(asset.texture).toBeInstanceOf(THREE.VideoTexture);
+    expect(load).toHaveBeenCalledOnce();
 
     asset.dispose();
   });
