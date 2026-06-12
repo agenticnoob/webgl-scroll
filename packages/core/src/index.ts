@@ -4,6 +4,7 @@ export * from "./effectRouter";
 export * from "./effectTypes";
 export * from "./gpu/gpuSimulationRunner";
 export * from "./gpu/renderTargetPool";
+export * from "./lifecycle";
 export * from "./pointerBridge";
 export * from "./pointerState";
 export * from "./webglRendererLoop";
