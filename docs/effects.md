@@ -61,6 +61,8 @@ Params:
 
 Cleanup:
 
+- Asset runtimes load through effect lifecycle. `create()` installs lightweight containers; image/GLB downloads and video `src` attachment happen from `onPreload` or active-entry fallback.
+- If the router receives an `assetResolver`, image/video/GLB assets ask it first with `{ effect: "asset-layer", id, kind, src }`.
 - Image and video textures, geometries, and materials are disposed with the effect.
 - GLB object graphs are traversed so geometries, materials, and texture-valued material fields are disposed.
 - Reduced motion pauses video playback and hides WebGL asset layers so DOM content remains readable.
@@ -157,10 +159,44 @@ Params:
 
 Runtime:
 
-- The effect samples GLB mesh surfaces, normalizes origins, creates origin/position/velocity textures, runs GPU velocity and position passes, then renders one `Points` object.
+- The effect loads during `onPreload`, samples GLB mesh surfaces, normalizes origins, creates origin/position/velocity textures, runs GPU velocity and position passes, then renders one `Points` object.
+- `create()` only installs an invisible group. If the trigger jumps straight to active before the preload margin is reached, `onEnter` / active `update()` starts the same idempotent preload path.
+- If the router receives an `assetResolver`, the effect asks it first with `{ effect: "glb-particles", kind: "glb", src }` and supports `arrayBuffer` or `blob` results before falling back to the declared `src`.
 - Placement owns the DOM anchor and base model size; `transform` is applied on top of that base. Do not create a separate transform effect for ordinary object rotation or scale.
 - Pointer state comes from `sharedStateTree.pointer`, normally written by one app-level `createWebGLPointerBridge({ target: canvas })`.
 - The render shader includes a small pointer displacement fallback so interaction remains visible even when simulation movement is subtle.
+
+## Lifecycle Margins
+
+Lifecycle can be declared on the trigger or on a specific effect:
+
+```tsx
+<WebGLEngineTrigger
+  trigger="particle-model"
+  lifecycle={{ preloadMargin: "120vh", suspendMargin: "100vh", unloadMargin: "300vh" }}
+  effects={[
+    {
+      type: "glb-particles",
+      lifecycle: { preloadMargin: "180vh", unloadMargin: "350vh" },
+      params: { src: "/models/human.glb" }
+    }
+  ]}
+/>
+```
+
+Effect-level lifecycle values override trigger-level values. Supported distance units are pixels, `vh`, `vw`, and `%`; numeric values are treated as pixels. Defaults are `preloadMargin: "100vh"`, `suspendMargin: "100vh"`, `unloadMargin: "250vh"`, `minIdleMs: 5000`, and `maxConcurrentPreloads: 2`.
+
+## Host Prefetch
+
+Host apps can download files ahead of time without moving download policy into `webgl-scroll`:
+
+```ts
+import { collectBuiltinEffectAssetRequests } from "@webgl-scroll/effects";
+
+const requests = collectBuiltinEffectAssetRequests(effects);
+```
+
+Use those requests to warm an app-owned cache. Pass an `assetResolver` to `EffectRouter`; built-in effects consume resolved assets when lifecycle preload runs. The package still owns scheduling and resource disposal, while the app owns network priority, cache lifetime, authentication, service worker policy, or route-level prefetching.
 
 Troubleshooting:
 

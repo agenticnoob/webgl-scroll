@@ -21,6 +21,7 @@ registerBuiltinEffects();
 export function PageSection() {
   return (
     <WebGLEngineTrigger
+      lifecycle={{ preloadMargin: "120vh", suspendMargin: "100vh", unloadMargin: "300vh" }}
       effects={[{ type: "fade-title", layer: "content", params: { fg: "#f7f2ea" } }]}
       trigger="stage-title"
     >
@@ -31,6 +32,19 @@ export function PageSection() {
 ```
 
 The React package emits `data-webgl-*` trigger metadata. The host app still owns the canvas setup, renderer loop, and teardown.
+
+## Lifecycle And Asset Loading
+
+Effects are scheduled by viewport distance. Defaults are:
+
+- `preloadMargin: "100vh"`: create the effect and call `onPreload` before it reaches the viewport.
+- `suspendMargin: "100vh"`: keep fast-return state while pausing visible work after it leaves the active range.
+- `unloadMargin: "250vh"` plus `minIdleMs: 5000`: dispose effects that stay far away long enough.
+- `maxConcurrentPreloads: 2`: limit simultaneous effect preload work.
+
+Apps can override these defaults globally through `EffectRouter({ lifecycle })`, per trigger with `data-webgl-lifecycle` or `WebGLEngineTrigger.lifecycle`, and per effect with `effect.lifecycle`.
+
+The package does not need to own host-wide downloading. Hosts may prefetch all known files early, then provide an `assetResolver` to the router. Built-in `asset-layer` and `glb-particles` first ask that resolver for image/video/GLB data and only fall back to their declared `src` when the resolver returns nothing. `@webgl-scroll/effects` also exports `collectBuiltinEffectAssetRequests()` so an app can derive a preload manifest from effect declarations.
 
 ## Which Package Should I Use?
 
@@ -71,7 +85,7 @@ See [docs/package-boundaries.md](docs/package-boundaries.md).
 
 ## Status
 
-`0.1.0` is the first public release line. Current development on `codex/asset-layer` adds shared pointer input, GPU simulation helpers, `glb-particles`, and declarative object transform support for particle GLBs; validate unpublished package builds in a host app by reinstalling local tarballs and clearing stale dev-server caches.
+`0.1.0` is the first public release line. Current development on `codex/lifecycle-host-prefetch` adds lifecycle-distance scheduling, host-managed asset resolver support, built-in asset manifest helpers, and lifecycle-aware `asset-layer` / `glb-particles` loading. Validate unpublished package builds in a host app by reinstalling local tarballs and clearing stale dev-server caches.
 
 ## License
 

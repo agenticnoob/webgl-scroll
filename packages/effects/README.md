@@ -50,9 +50,11 @@ The effect maps the trigger element's rect into the shared orthographic WebGL wo
 
 `params.placement` sets the shared anchor mapping. Each asset can add `placement` as a partial override, so one trigger can independently place image, video, and GLB layers without creating extra scroll triggers.
 
+Asset loading is lifecycle-aware. `create()` installs lightweight objects; image/GLB downloads and video `src` attachment happen during `onPreload` or active-entry fallback. If the router provides an `assetResolver`, assets ask it first with `{ effect: "asset-layer", id, kind, src }` and fall back to `src` when unresolved.
+
 ## GLB Particles
 
-`glb-particles` loads a GLB, samples mesh surfaces into a particle texture, runs GPU ping-pong position/velocity simulation, and uses shared pointer state from `@webgl-scroll/core` for visible scatter/return interaction:
+`glb-particles` samples a GLB into a particle texture during lifecycle preload, runs GPU ping-pong position/velocity simulation, and uses shared pointer state from `@webgl-scroll/core` for visible scatter/return interaction:
 
 ```ts
 {
@@ -78,3 +80,9 @@ The effect maps the trigger element's rect into the shared orthographic WebGL wo
 The host app should install one `createWebGLPointerBridge()` and update it from the renderer loop before-render hook. Do not add per-effect pointer listeners.
 
 Use `params.transform` for object-level particle group adjustment. `placement` determines the DOM anchor and base size; `transform` applies static rotation, positive scalar scale, and optional `autoRotate` on top of that base. Ordinary object rotation should stay inside the effect params instead of becoming a separate transform effect.
+
+If the router provides an `assetResolver`, `glb-particles` asks it first with `{ effect: "glb-particles", kind: "glb", src }` and supports resolved `arrayBuffer` or `blob` values before falling back to `src`.
+
+## Asset Manifests
+
+Use `collectBuiltinEffectAssetRequests(effects)` to derive app-owned preload requests from declarative built-in effect descriptors. This helper only returns `{ effect, id?, kind, src }`; it does not fetch, cache, or create WebGL runtime objects.

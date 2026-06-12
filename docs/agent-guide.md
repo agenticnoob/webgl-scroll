@@ -8,8 +8,10 @@ Use this as the default route for agentic work in this repo.
 4. Pick an existing effect from `docs/effects.md` before adding new runtime code.
 5. Use `asset-layer` for DOM-anchored image, video, or GLB media before writing app-local Three.js glue.
 6. Use `glb-particles` when the GLB itself should become a pointer-driven particle simulation.
-7. Use `examples/next-basic` or `examples/react-basic` for runtime validation.
-8. Update docs, examples, and tests in the same change when public effect params or behavior change.
+7. Use lifecycle margins before adding app-local visibility observers.
+8. Use app-owned prefetch plus `assetResolver` when files should be downloaded before effect lifecycle preload.
+9. Use `examples/next-basic` or `examples/react-basic` for runtime validation.
+10. Update docs, examples, and tests in the same change when public effect params or behavior change.
 
 Do not add a second renderer loop, a second scroll timing owner, copied app source, React imports in effects, per-effect pointer listeners, or visual effect code in core.
 
@@ -57,6 +59,8 @@ Placement is two-tier:
 
 Keep media declarations in effect params. Do not add React or Next.js imports to `@webgl-scroll/effects`, and do not move app-specific assets into package source.
 
+If a host wants all files downloaded before the effect becomes near-visible, collect declarations with `collectBuiltinEffectAssetRequests()` and warm an app cache. Pass the cache through `EffectRouter({ assetResolver })`. Do not add package-global download policy or route prefetching to `@webgl-scroll/effects`.
+
 ## GLB Particles
 
 Use `glb-particles` when a model should be sampled into GPU particles and respond to shared pointer input:
@@ -90,3 +94,15 @@ Use `glb-particles` when a model should be sampled into GPU particles and respon
 Keep ordinary object transforms inside the effect's `params.transform`. Do not create a separate transform effect unless the visual behavior truly needs its own resources, lifecycle, or compositor role.
 
 The app should install one `createWebGLPointerBridge` and update it from `WebGLRendererLoop.addBeforeRenderHook`. If browser validation sees no movement after installing local tarballs, inspect live shader uniforms and clear stale dev-server caches before changing effect params.
+
+## Lifecycle Defaults
+
+Core defaults are intentionally conservative:
+
+- `preloadMargin: "100vh"`
+- `suspendMargin: "100vh"`
+- `unloadMargin: "250vh"`
+- `minIdleMs: 5000`
+- `maxConcurrentPreloads: 2`
+
+Override globally in `EffectRouter({ lifecycle })`, per trigger with `WebGLEngineTrigger.lifecycle` or `data-webgl-lifecycle`, and per effect with `effect.lifecycle`. Per-effect values win over trigger values.
