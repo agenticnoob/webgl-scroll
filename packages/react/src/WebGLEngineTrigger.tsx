@@ -2,7 +2,7 @@
 
 import { createElement, type ReactNode } from "react";
 
-import type { EffectDescriptor } from "@webgl-scroll/core";
+import type { EffectDescriptor, WebGLEffectLifecycleInput } from "@webgl-scroll/core";
 
 /**
  * Input type for effect descriptors in the React adapter.
@@ -10,6 +10,7 @@ import type { EffectDescriptor } from "@webgl-scroll/core";
  */
 export type EffectDescriptorInput = {
   type: string;
+  lifecycle?: WebGLEffectLifecycleInput;
   layer?: "background" | "content" | "overlay";
   params?: Record<string, unknown>;
 };
@@ -25,6 +26,8 @@ type WebGLEngineTriggerProps = {
   end?: string;
   /** Effect descriptors (object-style API, serialized to `data-webgl-effects`). */
   effects: EffectDescriptorInput[];
+  /** Lifecycle config for the trigger, serialized to `data-webgl-lifecycle`. */
+  lifecycle?: WebGLEffectLifecycleInput;
   /** Scene grouping key for `data-webgl-scene`. */
   scene?: string;
   /** ScrollTrigger start expression. */
@@ -59,6 +62,7 @@ export function WebGLEngineTrigger({
   className,
   end,
   effects,
+  lifecycle,
   scene,
   start,
   trigger
@@ -67,6 +71,7 @@ export function WebGLEngineTrigger({
   const normalizedEffects: EffectDescriptor[] = effects.map((desc) => ({
     type: desc.type,
     ...(desc.layer != null ? { layer: desc.layer } : {}),
+    ...(desc.lifecycle != null ? { lifecycle: desc.lifecycle } : {}),
     params: desc.params ?? {}
   }));
 
@@ -75,6 +80,7 @@ export function WebGLEngineTrigger({
     "data-webgl-scene": scene,
     "data-webgl-start": start,
     "data-webgl-end": end,
+    "data-webgl-lifecycle": lifecycle ? JSON.stringify(lifecycle) : undefined,
     "data-webgl-effects": JSON.stringify(normalizedEffects)
   };
 

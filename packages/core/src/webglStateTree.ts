@@ -1,8 +1,10 @@
 import {
   roleToEffect,
+  snapshotToTrigger,
   type TriggerSnapshot,
   type WebGLScrollTriggerSnapshot
 } from "./effectTypes";
+import { createDefaultPointerState, type WebGLPointerState } from "./pointerState";
 
 // ---------------------------------------------------------------------------
 // WebGLStateTree
@@ -28,6 +30,9 @@ export class WebGLStateTree {
 
   /** Whether reduced motion preference is active. */
   reducedMotion = false;
+
+  /** Latest normalized pointer state, shared by effects that need input. */
+  pointer: WebGLPointerState = createDefaultPointerState();
 
   // -- internal storage -----------------------------------------------------
 
@@ -110,6 +115,7 @@ export class WebGLStateTree {
     this.elements.clear();
     this.paramsStore.clear();
     this.reducedMotion = false;
+    this.pointer = createDefaultPointerState();
     this.bumpVersion();
   }
 
@@ -219,22 +225,8 @@ export class WebGLStateTree {
   private convert(raw: WebGLScrollTriggerSnapshot): TriggerSnapshot {
     const element = this.elements.get(raw.id) ?? document.createElement("div");
     const params = this.paramsStore.get(raw.id) ?? {};
-    const effect = raw.effect ?? roleToEffect(raw.role) ?? "unknown";
 
-    return {
-      cutIndex: raw.cutIndex,
-      direction: 0,
-      effect,
-      element,
-      end: raw.end,
-      id: raw.id,
-      isActive: raw.isActive,
-      params,
-      progress: raw.progress,
-      scene: raw.scene,
-      start: raw.start,
-      velocity: 0
-    };
+    return snapshotToTrigger(raw, element, params);
   }
 
   private snapshotsForIds(ids: Set<string>): TriggerSnapshot[] {

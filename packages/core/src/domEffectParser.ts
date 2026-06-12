@@ -1,4 +1,5 @@
 import { roleToEffect } from "./effectTypes";
+import type { WebGLEffectLifecycleInput } from "./lifecycle";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,6 +14,8 @@ export type EffectDescriptor = {
   type: string;
   /** Optional rendering layer hint. */
   layer?: "background" | "content" | "overlay";
+  /** Raw lifecycle overrides declared for this effect. */
+  lifecycle?: WebGLEffectLifecycleInput;
   /** Merged parameters from all sources. */
   params: Record<string, unknown>;
 };
@@ -28,6 +31,8 @@ export type ScannedTriggerMetadata = {
   end: string;
   /** Unique identifier: `${scene}:${trigger}:${index}` */
   id: string;
+  /** Raw lifecycle overrides declared on this trigger. */
+  lifecycle?: WebGLEffectLifecycleInput;
   /** Scene grouping key. */
   scene: string;
   /** ScrollTrigger start expression. */
@@ -64,6 +69,9 @@ export function parseEffectDescriptors(element: HTMLElement): EffectDescriptor[]
         return parsed.map((entry) => ({
           type: String(entry.type ?? "unknown"),
           ...(entry.layer != null ? { layer: entry.layer as EffectDescriptor["layer"] } : {}),
+          ...(isRecord(entry.lifecycle)
+            ? { lifecycle: entry.lifecycle as WebGLEffectLifecycleInput }
+            : {}),
           params: (entry.params as Record<string, unknown>) ?? {}
         }));
       }
@@ -93,6 +101,26 @@ export function parseEffectDescriptors(element: HTMLElement): EffectDescriptor[]
   return [];
 }
 
+/**
+ * Parse trigger-level `data-webgl-lifecycle` JSON object.
+ * Returns `undefined` on missing, invalid, or non-object JSON.
+ */
+export function parseLifecycleConfig(element: HTMLElement): WebGLEffectLifecycleInput | undefined {
+  const raw = element.dataset.webglLifecycle;
+
+  if (raw == null || raw === "") {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    return isRecord(parsed) ? (parsed as WebGLEffectLifecycleInput) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Parameter parsing
 // ---------------------------------------------------------------------------
@@ -111,9 +139,7 @@ export function parseJsonParams(element: HTMLElement): Record<string, unknown> {
   try {
     const parsed = JSON.parse(raw);
 
-    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : {};
+    return isRecord(parsed) ? parsed : {};
   } catch {
     return {};
   }
@@ -198,6 +224,7 @@ export function scanElement(element: HTMLElement, index: number): ScannedTrigger
   const descriptors = parseEffectDescriptors(element);
   const jsonParams = parseJsonParams(element);
   const flattenedParams = parseFlattenedParams(element);
+  const lifecycle = parseLifecycleConfig(element);
 
   // Determine if we came through the legacy role path
   const isLegacyRole =
@@ -221,6 +248,7 @@ export function scanElement(element: HTMLElement, index: number): ScannedTrigger
     effects,
     end,
     id: `${scene}:${trigger}:${index}`,
+    ...(lifecycle ? { lifecycle } : {}),
     scene,
     start,
     trigger
@@ -233,4 +261,8 @@ export function scanElement(element: HTMLElement, index: number): ScannedTrigger
  */
 export function scanTriggerElements(root: ParentNode = document): ScannedTriggerMetadata[] {
   return Array.from(root.querySelectorAll<HTMLElement>("[data-webgl-trigger]")).map(scanElement);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -23,6 +23,8 @@ export type WebGLRendererLoopOptions = {
   rendererFactory?: (canvas: HTMLCanvasElement) => THREE.WebGLRenderer;
 };
 
+export type WebGLRendererLoopHook = (context: WebGLRendererLoopContext) => void;
+
 const defaultViewport = () => ({
   height: Math.max(window.innerHeight, 1),
   width: Math.max(window.innerWidth, 1)
@@ -35,6 +37,7 @@ export class WebGLRendererLoop {
   private readonly getNow: () => number;
   private readonly getViewport: () => WebGLRendererLoopViewport;
   private lastFrameTime: number;
+  private readonly beforeRenderHooks = new Set<WebGLRendererLoopHook>();
   private readonly startTime: number;
 
   constructor(canvas: HTMLCanvasElement, options: WebGLRendererLoopOptions = {}) {
@@ -88,9 +91,20 @@ export class WebGLRendererLoop {
       this.context.time = (now - this.startTime) / 1000;
       this.lastFrameTime = now;
 
+      for (const hook of this.beforeRenderHooks) {
+        hook(this.context);
+      }
       onFrame(this.context);
       this.context.renderer.render(this.context.scene, this.context.camera);
     });
+  }
+
+  addBeforeRenderHook(hook: WebGLRendererLoopHook): () => void {
+    this.beforeRenderHooks.add(hook);
+
+    return () => {
+      this.beforeRenderHooks.delete(hook);
+    };
   }
 
   stop(): void {

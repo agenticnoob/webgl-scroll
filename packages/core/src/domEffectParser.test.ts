@@ -5,6 +5,7 @@ import {
   parseEffectDescriptors,
   parseFlattenedParams,
   parseJsonParams,
+  parseLifecycleConfig,
   parseLegacyParams,
   scanElement,
   scanTriggerElements
@@ -98,6 +99,55 @@ describe("parseEffectDescriptors", () => {
     expect(parseEffectDescriptors(el)).toEqual([
       { type: "fade-title", params: {} }
     ]);
+  });
+
+  it("preserves effect-level lifecycle config from data-webgl-effects", () => {
+    const el = document.createElement("section");
+    el.dataset.webglEffects = JSON.stringify([
+      {
+        lifecycle: { preloadMargin: "180vh", unloadMargin: "350vh" },
+        params: { src: "/glb/a.glb" },
+        type: "glb-particles"
+      }
+    ]);
+
+    expect(parseEffectDescriptors(el)[0].lifecycle).toEqual({
+      preloadMargin: "180vh",
+      unloadMargin: "350vh"
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseLifecycleConfig
+// ---------------------------------------------------------------------------
+
+describe("parseLifecycleConfig", () => {
+  it("parses trigger-level lifecycle config from data-webgl-lifecycle", () => {
+    const el = document.createElement("section");
+    el.dataset.webglLifecycle = JSON.stringify({
+      minIdleMs: 8000,
+      preloadMargin: "120vh",
+      unloadMargin: "300vh"
+    });
+
+    expect(parseLifecycleConfig(el)).toEqual({
+      minIdleMs: 8000,
+      preloadMargin: "120vh",
+      unloadMargin: "300vh"
+    });
+  });
+
+  it("returns undefined for missing, invalid, or non-object lifecycle config", () => {
+    const el = document.createElement("section");
+
+    expect(parseLifecycleConfig(el)).toBeUndefined();
+
+    el.dataset.webglLifecycle = "not-json";
+    expect(parseLifecycleConfig(el)).toBeUndefined();
+
+    el.dataset.webglLifecycle = "[1,2,3]";
+    expect(parseLifecycleConfig(el)).toBeUndefined();
   });
 });
 
@@ -292,6 +342,42 @@ describe("scanElement", () => {
 
     expect(result.effects).toEqual([]);
     expect(result.id).toBe("scene-0:plain:0");
+  });
+
+  it("returns trigger-level lifecycle config", () => {
+    const el = document.createElement("section");
+    el.dataset.webglTrigger = "tree";
+    el.dataset.webglLifecycle = JSON.stringify({
+      minIdleMs: 8000,
+      preloadMargin: "120vh",
+      unloadMargin: "300vh"
+    });
+    el.dataset.webglEffects = JSON.stringify([
+      { params: { src: "/glb/a.glb" }, type: "glb-particles" }
+    ]);
+
+    expect(scanElement(el, 0).lifecycle).toEqual({
+      minIdleMs: 8000,
+      preloadMargin: "120vh",
+      unloadMargin: "300vh"
+    });
+  });
+
+  it("returns effect-level lifecycle config", () => {
+    const el = document.createElement("section");
+    el.dataset.webglTrigger = "tree";
+    el.dataset.webglEffects = JSON.stringify([
+      {
+        lifecycle: { preloadMargin: "180vh", unloadMargin: "350vh" },
+        params: { src: "/glb/a.glb" },
+        type: "glb-particles"
+      }
+    ]);
+
+    expect(scanElement(el, 0).effects[0].lifecycle).toEqual({
+      preloadMargin: "180vh",
+      unloadMargin: "350vh"
+    });
   });
 });
 

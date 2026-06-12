@@ -1,5 +1,12 @@
 import type * as THREE from "three";
 
+import type { WebGLAssetResolver } from "./assets";
+import type {
+  WebGLEffectLifecycleConfig,
+  WebGLEffectLifecycleInput,
+  WebGLEffectLifecycleSnapshot
+} from "./lifecycle";
+
 export type WebGLScrollTriggerRole = "cut" | "title";
 
 export type WebGLScrollTriggerSnapshot = {
@@ -8,6 +15,7 @@ export type WebGLScrollTriggerSnapshot = {
   end: string;
   id: string;
   isActive: boolean;
+  lifecycle?: WebGLEffectLifecycleInput;
   progress: number;
   role?: WebGLScrollTriggerRole;
   scene: string;
@@ -35,6 +43,8 @@ export type TriggerMetadata = {
   end: string;
   /** Unique identifier: `${scene}:${trigger}:${index}` */
   id: string;
+  /** Raw lifecycle overrides declared on the trigger or effect. */
+  lifecycle?: WebGLEffectLifecycleInput;
   /** Merged effect parameters from `data-webgl-params` and `data-webgl-effect-*`. */
   params: Record<string, unknown>;
   /** Scene grouping key (e.g. "build"). */
@@ -51,11 +61,17 @@ export type TriggerMetadata = {
  * Runtime snapshot for a single trigger, combining static metadata with
  * per-frame timing data written by the GSAP bridge.
  */
-export type TriggerSnapshot = TriggerMetadata & {
+export type TriggerSnapshot = Omit<TriggerMetadata, "lifecycle"> & {
   /** Normalized scroll progress in [0, 1]. */
   progress: number;
   /** Whether the trigger element is currently within the viewport. */
   isActive: boolean;
+  /** Runtime lifecycle phase snapshot. */
+  lifecycle?: WebGLEffectLifecycleSnapshot;
+  /** Raw lifecycle overrides declared on the trigger or effect. */
+  lifecycleConfigInput?: WebGLEffectLifecycleInput;
+  /** Normalized lifecycle configuration used to compute lifecycle phase. */
+  lifecycleConfig?: WebGLEffectLifecycleConfig;
   /** Scroll velocity in px/s (positive = scrolling down). */
   velocity: number;
   /** Scroll direction: 1 (down), -1 (up), or 0 (idle). */
@@ -73,6 +89,8 @@ export type TriggerSnapshot = TriggerMetadata & {
 export type EffectContext = {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
+  /** Optional host-managed asset resolver. */
+  assetResolver?: WebGLAssetResolver;
   /** The trigger's merged parameters. */
   params: Record<string, unknown>;
   /** The DOM element that declared this effect. */
@@ -144,6 +162,12 @@ export abstract class WebGLEffect {
 
   /** Optional: trigger element leaves viewport. */
   onLeave?(snapshot: TriggerSnapshot): void;
+
+  /** Optional: preload resources before the trigger becomes active. */
+  onPreload?(snapshot: TriggerSnapshot, context: RenderContext): void | Promise<void>;
+
+  /** Optional: suspend resources while keeping fast-return state available. */
+  onSuspend?(snapshot: TriggerSnapshot): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -185,6 +209,7 @@ export function snapshotToTrigger(
     end: snapshot.end,
     id: snapshot.id,
     isActive: snapshot.isActive,
+    lifecycleConfigInput: snapshot.lifecycle,
     params,
     progress: snapshot.progress,
     scene: snapshot.scene,

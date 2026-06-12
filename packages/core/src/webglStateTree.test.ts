@@ -188,6 +188,29 @@ describe("WebGLStateTree", () => {
       expect(snapshot!.effect).toBe("custom-effect");
     });
 
+    it("preserves lifecycle config in converted snapshots", () => {
+      tree.set(
+        "a",
+        makeRaw({
+          id: "a",
+          lifecycle: {
+            minIdleMs: 8000,
+            preloadMargin: "120vh",
+            unloadMargin: "300vh"
+          }
+        })
+      );
+
+      const snapshot = tree.getSnapshot("a");
+
+      expect(snapshot!.lifecycle).toBeUndefined();
+      expect(snapshot!.lifecycleConfigInput).toEqual({
+        minIdleMs: 8000,
+        preloadMargin: "120vh",
+        unloadMargin: "300vh"
+      });
+    });
+
     it("falls back to 'unknown' when neither effect nor role is set", () => {
       tree.set("a", makeRaw({ id: "a" }));
 
@@ -278,10 +301,11 @@ describe("WebGLStateTree", () => {
 
   // -- reset ----------------------------------------------------------------
 
-  it("reset clears triggers, indexes, elements, and reducedMotion", () => {
+  it("reset clears triggers, indexes, elements, reducedMotion, and pointer state", () => {
     tree.reducedMotion = true;
     tree.registerElement("a", document.createElement("div"), { fg: "#fff" });
     tree.set("a", makeRaw({ id: "a", scene: "build", role: "cut" }));
+    tree.pointer = { ...tree.pointer, isInside: true, isMoving: true, x: 0.5, y: 0.5 };
 
     tree.reset();
 
@@ -290,6 +314,18 @@ describe("WebGLStateTree", () => {
     expect(tree.getByEffect("pixelated-wipe")).toEqual([]);
     expect(tree.getSnapshot("a")).toBeUndefined();
     expect(tree.reducedMotion).toBe(false);
+    expect(tree.pointer).toEqual({
+      idleMs: 0,
+      isInside: false,
+      isMoving: false,
+      lastMoveAt: 0,
+      ndcX: -1,
+      ndcY: 1,
+      velocityX: 0,
+      velocityY: 0,
+      x: 0,
+      y: 0
+    });
   });
 
   // -- delete ---------------------------------------------------------------

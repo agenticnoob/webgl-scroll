@@ -75,6 +75,50 @@ describe("WebGLRendererLoop", () => {
     );
   });
 
+  it("runs beforeRender hooks before frame callbacks and final render", () => {
+    const canvas = document.createElement("canvas");
+    const renderer = createFakeRenderer(canvas);
+    const beforeRender = vi.fn();
+    const frameCallback = vi.fn();
+
+    const loop = new WebGLRendererLoop(canvas, {
+      getViewport: () => ({ height: 600, width: 800 }),
+      rendererFactory: () => renderer as unknown as THREE.WebGLRenderer
+    });
+
+    loop.addBeforeRenderHook(beforeRender);
+    loop.start(frameCallback);
+    const animate = renderer.setAnimationLoop.mock.calls[0][0] as () => void;
+    animate();
+
+    expect(beforeRender).toHaveBeenCalledWith(loop.context);
+    expect(beforeRender.mock.invocationCallOrder[0]).toBeLessThan(
+      frameCallback.mock.invocationCallOrder[0]
+    );
+    expect(frameCallback.mock.invocationCallOrder[0]).toBeLessThan(
+      renderer.render.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("removes beforeRender hooks through the unsubscribe function", () => {
+    const canvas = document.createElement("canvas");
+    const renderer = createFakeRenderer(canvas);
+    const beforeRender = vi.fn();
+
+    const loop = new WebGLRendererLoop(canvas, {
+      getViewport: () => ({ height: 600, width: 800 }),
+      rendererFactory: () => renderer as unknown as THREE.WebGLRenderer
+    });
+
+    const unsubscribe = loop.addBeforeRenderHook(beforeRender);
+    unsubscribe();
+    loop.start(vi.fn());
+    const animate = renderer.setAnimationLoop.mock.calls[0][0] as () => void;
+    animate();
+
+    expect(beforeRender).not.toHaveBeenCalled();
+  });
+
   it("stops and disposes the underlying renderer", () => {
     const canvas = document.createElement("canvas");
     const renderer = createFakeRenderer(canvas);

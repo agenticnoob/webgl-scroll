@@ -206,6 +206,58 @@ describe("createWebGLScrollTriggerBridge with effects", () => {
 
     cleanup();
   });
+
+  it("writes trigger lifecycle config to expanded snapshots", () => {
+    document.body.innerHTML = `
+      <section
+        data-webgl-trigger="tree"
+        data-webgl-scene="demo"
+        data-webgl-lifecycle='{"preloadMargin":"120vh","unloadMargin":"300vh","minIdleMs":8000}'
+        data-webgl-effects='[{"type":"glb-particles","params":{"src":"/glb/a.glb"}}]'
+      ></section>
+    `;
+
+    const cleanup = createWebGLScrollTriggerBridge({
+      reducedMotion: true,
+      root: document.body
+    });
+
+    expect(webglScrollTriggerState.triggers["demo:tree:0:glb-particles:0"]).toMatchObject({
+      lifecycle: {
+        minIdleMs: 8000,
+        preloadMargin: "120vh",
+        unloadMargin: "300vh"
+      }
+    });
+
+    cleanup();
+  });
+
+  it("lets effect lifecycle config override trigger lifecycle config", () => {
+    document.body.innerHTML = `
+      <section
+        data-webgl-trigger="tree"
+        data-webgl-scene="demo"
+        data-webgl-lifecycle='{"preloadMargin":"120vh","suspendMargin":"100vh","unloadMargin":"300vh"}'
+        data-webgl-effects='[{"type":"glb-particles","lifecycle":{"preloadMargin":"180vh","unloadMargin":"350vh"},"params":{"src":"/glb/a.glb"}}]'
+      ></section>
+    `;
+
+    const cleanup = createWebGLScrollTriggerBridge({
+      reducedMotion: true,
+      root: document.body
+    });
+
+    expect(webglScrollTriggerState.triggers["demo:tree:0:glb-particles:0"]).toMatchObject({
+      lifecycle: {
+        preloadMargin: "180vh",
+        suspendMargin: "100vh",
+        unloadMargin: "350vh"
+      }
+    });
+
+    cleanup();
+  });
 });
 
 describe("createWebGLScrollTriggerBridge", () => {

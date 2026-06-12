@@ -122,6 +122,7 @@ function writeExpandedSnapshots(
       end: metadata.end,
       id: metadata.id,
       isActive,
+      ...(metadata.lifecycle ? { lifecycle: metadata.lifecycle } : {}),
       progress,
       scene: metadata.scene,
       start: metadata.start,
@@ -153,6 +154,9 @@ function writeExpandedSnapshots(
       end: metadata.end,
       id: effectId,
       isActive,
+      ...(desc.lifecycle ?? metadata.lifecycle
+        ? { lifecycle: { ...metadata.lifecycle, ...desc.lifecycle } }
+        : {}),
       progress,
       scene: metadata.scene,
       start: metadata.start,
