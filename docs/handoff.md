@@ -32,6 +32,7 @@ The latest browser issue was not a package shader bug. The host app's `.next-dev
 
 - Merge or open a PR from `codex/lifecycle-host-prefetch` into the package release line.
 - Run final release-branch verification before publishing the next `@webgl-scroll/*` version.
+- Publishing is manual after merge: CI runs on PRs and `main` pushes, but `.github/workflows/release.yml` is `workflow_dispatch` and must be triggered with `NPM_TOKEN` available.
 - After publish, update Codex Web from temporary local tarball validation back to the published npm packages and rerun its check/browser smoke.
 - Consider making render-shader displacement a first-class public param instead of deriving it from `scatterForce`.
 - Add a browser/example validation path for lifecycle diagnostics; static tests do not catch stale host bundles or visual interaction issues.
