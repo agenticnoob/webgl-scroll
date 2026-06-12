@@ -1,5 +1,6 @@
 import {
   roleToEffect,
+  snapshotToTrigger,
   type TriggerSnapshot,
   type WebGLScrollTriggerSnapshot
 } from "./effectTypes";
@@ -224,22 +225,8 @@ export class WebGLStateTree {
   private convert(raw: WebGLScrollTriggerSnapshot): TriggerSnapshot {
     const element = this.elements.get(raw.id) ?? document.createElement("div");
     const params = this.paramsStore.get(raw.id) ?? {};
-    const effect = raw.effect ?? roleToEffect(raw.role) ?? "unknown";
 
-    return {
-      cutIndex: raw.cutIndex,
-      direction: 0,
-      effect,
-      element,
-      end: raw.end,
-      id: raw.id,
-      isActive: raw.isActive,
-      params,
-      progress: raw.progress,
-      scene: raw.scene,
-      start: raw.start,
-      velocity: 0
-    };
+    return snapshotToTrigger(raw, element, params);
   }
 
   private snapshotsForIds(ids: Set<string>): TriggerSnapshot[] {

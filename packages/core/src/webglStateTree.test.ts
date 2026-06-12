@@ -188,6 +188,28 @@ describe("WebGLStateTree", () => {
       expect(snapshot!.effect).toBe("custom-effect");
     });
 
+    it("preserves lifecycle config in converted snapshots", () => {
+      tree.set(
+        "a",
+        makeRaw({
+          id: "a",
+          lifecycle: {
+            minIdleMs: 8000,
+            preloadMargin: "120vh",
+            unloadMargin: "300vh"
+          }
+        })
+      );
+
+      const snapshot = tree.getSnapshot("a");
+
+      expect(snapshot!.lifecycle).toEqual({
+        minIdleMs: 8000,
+        preloadMargin: "120vh",
+        unloadMargin: "300vh"
+      });
+    });
+
     it("falls back to 'unknown' when neither effect nor role is set", () => {
       tree.set("a", makeRaw({ id: "a" }));
 
