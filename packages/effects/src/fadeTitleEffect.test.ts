@@ -8,11 +8,32 @@ import {
   type RenderContext,
   registerEffect,
   sharedStateTree,
-  type TriggerSnapshot
+  type TriggerSnapshot,
+  type WebGLEffectInstance
 } from "@webgl-scroll/core";
 
-import { FadeTitleEffect, setFadeTitleSections } from "./fadeTitleEffect";
+import { fadeTitleEffect, setFadeTitleSections } from "./fadeTitleEffect";
 import type { ThemeStop } from "./uniforms";
+
+function createLegacyTestProxy(definition: typeof fadeTitleEffect) {
+  let instance: WebGLEffectInstance | undefined;
+
+  return {
+    create(context: EffectContext) {
+      instance = definition.create(context);
+    },
+    dispose() {
+      instance?.dispose();
+    },
+    update(snapshot: TriggerSnapshot, context: RenderContext) {
+      instance?.update(snapshot, context);
+    }
+  };
+}
+
+const FadeTitleEffect = function () {
+  return createLegacyTestProxy(fadeTitleEffect);
+} as unknown as { new(): ReturnType<typeof createLegacyTestProxy> };
 
 const testSections: ThemeStop[] = [
   {
@@ -355,7 +376,7 @@ describe("FadeTitleEffect.dispose", () => {
 describe("FadeTitleEffect integration with EffectRouter", () => {
   it("works through the router lifecycle", async () => {
     clearEffectRegistry();
-    registerEffect({ klass: FadeTitleEffect, type: "fade-title" });
+    registerEffect({ create: (context) => { const effect = new FadeTitleEffect(); effect.create(context); return effect; }, type: "fade-title" });
 
     const router = new EffectRouter();
     const element = document.createElement("section");

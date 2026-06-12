@@ -4,9 +4,9 @@ Use this when deciding which package owns a change.
 
 | Need | Install | Why |
 | --- | --- | --- |
-| Runtime, registry, state tree, pointer input, GPU helpers, custom effects | `@webgl-scroll/core` | Lowest-level WebGL scroll engine |
+| Runtime, registry, state tree, pointer input, GPU helpers, custom effects | `@webgl-scroll/core` | Function-first WebGL scroll runtime |
 | Asset layers, fade title, GLB particles, and pixelated wipe effects | `@webgl-scroll/effects` | Built-in effects on top of core |
-| React trigger components | `@webgl-scroll/react` | React bindings for trigger markup |
+| React trigger components and runtime shell | `@webgl-scroll/react` | React bindings for trigger markup and canvas mounting |
 
 ## Core
 
@@ -17,8 +17,8 @@ Put framework-agnostic runtime mechanics in `@webgl-scroll/core`:
 - `WebGLStateTree`.
 - Shared pointer state and `createWebGLPointerBridge`.
 - `GpuSimulationRunner` and render-target pooling primitives.
-- `WebGLEffect`, registry, router, effect params, lifecycle-distance scheduling, and `assetResolver` plumbing.
-- `WebGLRendererLoop`.
+- `defineWebGLEffect()`, registry, router, effect params, lifecycle-distance scheduling, and `assetResolver` plumbing.
+- `createWebGLScrollRuntime()`, default asset resolver, dev debug state, resize, teardown, and `WebGLRendererLoop`.
 
 Core must not import React, Next.js, built-in effects, page content, or visual effect implementations.
 
@@ -26,10 +26,8 @@ Core must not import React, Next.js, built-in effects, page content, or visual e
 
 Put named visual outputs in `@webgl-scroll/effects`:
 
-- `AssetLayerEffect`.
-- `FadeTitleEffect`.
-- `GlbParticlesEffect`.
-- `PixelatedWipeEffect`.
+- Function definitions for `asset-layer`, `fade-title`, `glb-particles`, and `pixelated-wipe`.
+- `builtinEffects()` for app/runtime registration.
 - Effect shaders, uniforms, and coordinators.
 - Built-in effect registration.
 - Media asset runtimes, DOM-anchored placement helpers, scroll timeline helpers, and GLB disposal utilities.
@@ -45,6 +43,7 @@ Effects may consume host-resolved assets through core's `assetResolver`. They mu
 Put React ergonomics in `@webgl-scroll/react`:
 
 - `WebGLEngineTrigger`.
+- `<WebGLScrollRuntime />`.
 - JSX serialization for `data-webgl-*` attributes.
 - Typed trigger and effect lifecycle declarations.
 - React hooks or client-only adapters.

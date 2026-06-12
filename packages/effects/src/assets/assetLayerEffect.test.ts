@@ -1,10 +1,39 @@
 import * as THREE from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { EffectContext, RenderContext, TriggerSnapshot } from "@webgl-scroll/core";
+import type { EffectContext, RenderContext, TriggerSnapshot, WebGLEffectInstance } from "@webgl-scroll/core";
 
-import { AssetLayerEffect, resetAssetLayerRuntimeFactoryForTests, setAssetLayerRuntimeFactoryForTests } from "./assetLayerEffect";
+import { assetLayerEffect, resetAssetLayerRuntimeFactoryForTests, setAssetLayerRuntimeFactoryForTests } from "./assetLayerEffect";
 import type { AssetRuntime } from "./assetRuntime";
+
+function createLegacyTestProxy(definition: typeof assetLayerEffect) {
+  let instance: WebGLEffectInstance | undefined;
+
+  return {
+    create(context: EffectContext) {
+      instance = definition.create(context);
+    },
+    dispose() {
+      instance?.dispose();
+    },
+    enter(snapshot: TriggerSnapshot) {
+      instance?.enter?.(snapshot);
+    },
+    preload(snapshot: TriggerSnapshot, context: RenderContext) {
+      return instance?.preload?.(snapshot, context);
+    },
+    suspend(snapshot: TriggerSnapshot) {
+      instance?.suspend?.(snapshot);
+    },
+    update(snapshot: TriggerSnapshot, context: RenderContext) {
+      instance?.update(snapshot, context);
+    }
+  };
+}
+
+const AssetLayerEffect = function () {
+  return createLegacyTestProxy(assetLayerEffect);
+} as unknown as { new(): ReturnType<typeof createLegacyTestProxy> };
 
 function makeRenderContext(overrides: Partial<RenderContext> = {}): RenderContext {
   return {
@@ -179,8 +208,8 @@ describe("AssetLayerEffect", () => {
       ]
     }, element));
 
-    await effect.onPreload(snapshot, makeRenderContext());
-    effect.onSuspend(snapshot);
+    await effect.preload(snapshot, makeRenderContext());
+    effect.suspend(snapshot);
 
     expect(preload).toHaveBeenCalledTimes(2);
     expect(preload).toHaveBeenNthCalledWith(1, snapshot);
@@ -200,7 +229,7 @@ describe("AssetLayerEffect", () => {
       assets: [{ id: "image", kind: "image", src: "/image.jpg" }]
     }, element));
 
-    effect.onEnter(snapshot);
+    effect.enter(snapshot);
 
     expect(preload).toHaveBeenCalledOnce();
     expect(preload).toHaveBeenCalledWith(snapshot);
@@ -218,7 +247,7 @@ describe("AssetLayerEffect", () => {
       assets: [{ id: "image", kind: "image", src: "/image.jpg" }]
     }, element));
 
-    effect.onEnter(makeSnapshot(element));
+    effect.enter(makeSnapshot(element));
     await Promise.resolve();
 
     expect(preload).toHaveBeenCalledOnce();

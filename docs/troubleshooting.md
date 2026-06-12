@@ -2,7 +2,7 @@
 
 ## Blank Canvas
 
-Check that the canvas exists before engine start, the integration is client-only, and `WebGLRendererLoop` is constructed once.
+Check that the canvas exists before engine start, the integration is client-only, and `createWebGLScrollRuntime()` or `<WebGLScrollRuntime />` is mounted once.
 
 ## ScrollTrigger Does Not Update
 
@@ -10,11 +10,11 @@ Check for `[data-webgl-trigger]` elements, valid `data-webgl-start` and `data-we
 
 ## Unknown Effect Type
 
-Register the effect before engine start. For built-ins, call `registerBuiltinEffects()`.
+Pass effect definitions before engine start. For built-ins, use `effects: [builtinEffects()]`. For custom effects, use `defineWebGLEffect()` and include the returned definition in the runtime `effects` array.
 
 ## Duplicate Effect Registration
 
-Built-in registration should guard with `resolveEffect()` before `registerEffect()`. Custom effects should use unique type names.
+Custom effects should use unique type names. The runtime registers the supplied definitions; avoid mounting two runtimes with the same effect definitions on the same page.
 
 ## React Hydration Issues
 
@@ -32,7 +32,7 @@ Check in this order:
 
 1. Confirm `@webgl-scroll/effects` output contains `uPointer`, `uPointerStrength`, and `uRenderScatter`.
 2. Restart the host app after clearing its dev cache.
-3. Confirm one `createWebGLPointerBridge` is installed at the app boundary and updated before rendering.
+3. Confirm one runtime owns pointer input and that `window.__webglScrollDebug.getState().pointer` changes while the pointer moves.
 4. Inspect live `Points` material uniforms: `uPointer`, `uPointerRadius`, `uPointerStrength`, and `uRenderScatter`.
 5. Only tune `pointerRadius`, `scatterForce`, `returnForce`, `damping`, or `transform` after pointer state and uniforms are known to update.
 

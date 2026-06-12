@@ -1,8 +1,8 @@
 import {
+  defineWebGLEffect,
   type EffectContext,
   type RenderContext,
-  type TriggerSnapshot,
-  WebGLEffect
+  type TriggerSnapshot
 } from "@webgl-scroll/core";
 import * as THREE from "three";
 
@@ -34,25 +34,29 @@ export function preparePixelatedWipeFrame(): void {
   beginPixelatedWipeFrame();
 }
 
-export class PixelatedWipeEffect extends WebGLEffect {
-  readonly type = "pixelated-wipe";
-
-  create(context: EffectContext): void {
+export const pixelatedWipeEffect = defineWebGLEffect({
+  type: "pixelated-wipe",
+  schema: {
+    cutIndex: { type: "number" }
+  },
+  create(context: EffectContext) {
     ensurePixelatedWipeResources(context.scene, sectionsAccessor);
-  }
 
-  update(_snapshot: TriggerSnapshot, context: RenderContext): void {
-    updatePixelatedWipeCoordinator({
-      context,
-      cutSnapshots: getPixelatedWipeCutSnapshots(),
-      sections: sectionsAccessor
-    });
-  }
+    return {
+      update(_snapshot: TriggerSnapshot, renderContext: RenderContext): void {
+        updatePixelatedWipeCoordinator({
+          context: renderContext,
+          cutSnapshots: getPixelatedWipeCutSnapshots(),
+          sections: sectionsAccessor
+        });
+      },
 
-  dispose(): void {
-    // Shared resources are disposed via `disposePixelatedWipeResources()`.
+      dispose(): void {
+        // Shared resources are disposed via `disposePixelatedWipeResources()`.
+      }
+    };
   }
-}
+});
 
 /**
  * Dispose the shared shader material, mesh, and geometry.

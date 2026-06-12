@@ -83,7 +83,7 @@ export type TriggerSnapshot = Omit<TriggerMetadata, "lifecycle"> & {
 // ---------------------------------------------------------------------------
 
 /**
- * Context passed to `WebGLEffect.create()`. Provides access to the Three.js
+ * Context passed to an effect definition's `create()`. Provides access to the Three.js
  * scene, renderer, and the trigger's own metadata and parameters.
  */
 export type EffectContext = {
@@ -102,7 +102,7 @@ export type EffectContext = {
 // ---------------------------------------------------------------------------
 
 /**
- * Per-frame rendering context passed to `WebGLEffect.update()`.
+ * Per-frame rendering context passed to effect instances.
  */
 export type RenderContext = {
   scene: THREE.Scene;
@@ -125,49 +125,42 @@ export type ParamDef = {
 };
 
 // ---------------------------------------------------------------------------
-// Abstract Effect base class
+// Function effect definitions
 // ---------------------------------------------------------------------------
 
 /**
- * Base class for all WebGL visual effects.
+ * Runtime object returned by a function effect definition.
  *
  * Lifecycle:
- *   1. `create(ctx)` — allocate meshes, shaders, textures; add to scene.
- *   2. `update(snapshot, ctx)` — called every frame while the trigger exists.
- *   3. `dispose()` — release geometry, material, and texture resources.
+ *   1. definition `create(ctx)` allocates meshes, shaders, textures, and adds to scene.
+ *   2. instance `update(snapshot, ctx)` runs every frame while the trigger exists.
+ *   3. instance `dispose()` releases geometry, material, and texture resources.
  *
  * Optional hooks:
- *   - `onResize(viewport)` — rebuild when the viewport changes.
- *   - `onEnter(snapshot)` — trigger element enters the viewport.
- *   - `onLeave(snapshot)` — trigger element leaves the viewport.
+ *   - `resize(viewport)` rebuilds when the viewport changes.
+ *   - `enter(snapshot)` runs when the trigger element enters the viewport.
+ *   - `leave(snapshot)` runs when the trigger element leaves the viewport.
+ *   - `preload(snapshot, context)` loads resources before active entry.
+ *   - `suspend(snapshot)` releases heavy state while preserving fast-return state.
  */
-export abstract class WebGLEffect {
-  /** Effect type name, must match the registered `data-webgl-effect` value. */
-  abstract readonly type: string;
+export type WebGLEffectInstance = {
+  update(snapshot: TriggerSnapshot, context: RenderContext): void;
+  dispose(): void;
+  enter?(snapshot: TriggerSnapshot): void;
+  leave?(snapshot: TriggerSnapshot): void;
+  preload?(snapshot: TriggerSnapshot, context: RenderContext): void | Promise<void>;
+  resize?(viewport: { height: number; width: number }): void;
+  suspend?(snapshot: TriggerSnapshot): void;
+};
 
-  /** Allocate GPU resources and add meshes to the scene. */
-  abstract create(context: EffectContext): void;
+export type WebGLEffectDefinition = {
+  type: string;
+  schema?: Record<string, ParamDef>;
+  create(context: EffectContext): WebGLEffectInstance;
+};
 
-  /** Per-frame update. Read snapshot timing, write uniforms / transforms. */
-  abstract update(snapshot: TriggerSnapshot, context: RenderContext): void;
-
-  /** Release all GPU resources (geometry, material, texture). */
-  abstract dispose(): void;
-
-  /** Optional: rebuild on viewport resize. */
-  onResize?(viewport: { height: number; width: number }): void;
-
-  /** Optional: trigger element enters viewport. */
-  onEnter?(snapshot: TriggerSnapshot): void;
-
-  /** Optional: trigger element leaves viewport. */
-  onLeave?(snapshot: TriggerSnapshot): void;
-
-  /** Optional: preload resources before the trigger becomes active. */
-  onPreload?(snapshot: TriggerSnapshot, context: RenderContext): void | Promise<void>;
-
-  /** Optional: suspend resources while keeping fast-return state available. */
-  onSuspend?(snapshot: TriggerSnapshot): void;
+export function defineWebGLEffect(definition: WebGLEffectDefinition): WebGLEffectDefinition {
+  return definition;
 }
 
 // ---------------------------------------------------------------------------

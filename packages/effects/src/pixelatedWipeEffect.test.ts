@@ -6,17 +6,38 @@ import {
   type RenderContext,
   sharedStateTree,
   type TriggerSnapshot,
+  type WebGLEffectInstance,
   type WebGLScrollTriggerSnapshot
 } from "@webgl-scroll/core";
 
 import {
   disposePixelatedWipeResources,
   getPixelatedWipeMaterial,
-  PixelatedWipeEffect,
+  pixelatedWipeEffect,
   preparePixelatedWipeFrame,
   setPixelatedWipeSections
 } from "./pixelatedWipeEffect";
 import type { ThemeStop } from "./uniforms";
+
+function createLegacyTestProxy(definition: typeof pixelatedWipeEffect) {
+  let instance: WebGLEffectInstance | undefined;
+
+  return {
+    create(context: EffectContext) {
+      instance = definition.create(context);
+    },
+    dispose() {
+      instance?.dispose();
+    },
+    update(snapshot: TriggerSnapshot, context: RenderContext) {
+      instance?.update(snapshot, context);
+    }
+  };
+}
+
+const PixelatedWipeEffect = function () {
+  return createLegacyTestProxy(pixelatedWipeEffect);
+} as unknown as { new(): ReturnType<typeof createLegacyTestProxy> };
 
 const testSections: ThemeStop[] = [
   {

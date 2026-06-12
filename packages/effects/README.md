@@ -2,7 +2,7 @@
 
 Built-in visual effects for `@webgl-scroll/core`.
 
-Use this package when you want ready-made effects such as `asset-layer`, `fade-title`, `glb-particles`, and `pixelated-wipe` without writing a custom `WebGLEffect`.
+Use this package when you want ready-made function effects such as `asset-layer`, `fade-title`, `glb-particles`, and `pixelated-wipe` without writing a custom effect definition.
 
 ## Install
 
@@ -13,6 +13,17 @@ npm install @webgl-scroll/core @webgl-scroll/effects three
 ## Boundary
 
 `@webgl-scroll/effects` may depend on `@webgl-scroll/core` and `three`. It must not depend on React or Next.js.
+
+Register built-ins through the runtime:
+
+```ts
+import { builtinEffects } from "@webgl-scroll/effects";
+
+createWebGLScrollRuntime({
+  canvas,
+  effects: [builtinEffects()]
+});
+```
 
 ## Asset Layer
 
@@ -50,7 +61,7 @@ The effect maps the trigger element's rect into the shared orthographic WebGL wo
 
 `params.placement` sets the shared anchor mapping. Each asset can add `placement` as a partial override, so one trigger can independently place image, video, and GLB layers without creating extra scroll triggers.
 
-Asset loading is lifecycle-aware. `create()` installs lightweight objects; image/GLB downloads and video `src` attachment happen during `onPreload` or active-entry fallback. If the router provides an `assetResolver`, assets ask it first with `{ effect: "asset-layer", id, kind, src }` and fall back to `src` when unresolved.
+Asset loading is lifecycle-aware. Effect `create()` installs lightweight objects; image/GLB downloads and video `src` attachment happen during `preload` or active-entry fallback. If the runtime provides an `assetResolver`, assets ask it first with `{ effect: "asset-layer", id, kind, src }` and fall back to `src` when unresolved.
 
 ## GLB Particles
 
@@ -77,7 +88,7 @@ Asset loading is lifecycle-aware. `create()` installs lightweight objects; image
 }
 ```
 
-The host app should install one `createWebGLPointerBridge()` and update it from the renderer loop before-render hook. Do not add per-effect pointer listeners.
+The runtime installs one shared pointer bridge and updates it before rendering. Do not add per-effect pointer listeners.
 
 Use `params.transform` for object-level particle group adjustment. `placement` determines the DOM anchor and base size; `transform` applies static rotation, positive scalar scale, and optional `autoRotate` on top of that base. Ordinary object rotation should stay inside the effect params instead of becoming a separate transform effect.
 

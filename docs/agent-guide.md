@@ -93,7 +93,7 @@ Use `glb-particles` when a model should be sampled into GPU particles and respon
 
 Keep ordinary object transforms inside the effect's `params.transform`. Do not create a separate transform effect unless the visual behavior truly needs its own resources, lifecycle, or compositor role.
 
-The app should install one `createWebGLPointerBridge` and update it from `WebGLRendererLoop.addBeforeRenderHook`. If browser validation sees no movement after installing local tarballs, inspect live shader uniforms and clear stale dev-server caches before changing effect params.
+The runtime should own one shared pointer bridge and update it before rendering. If browser validation sees no movement after installing local tarballs, inspect `window.__webglScrollDebug.getState().pointer`, live shader uniforms, and stale dev-server caches before changing effect params.
 
 ## Lifecycle Defaults
 

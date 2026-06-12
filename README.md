@@ -13,44 +13,45 @@ React adapters require `react` and `react-dom` from the host app.
 ## Quick Start
 
 ```tsx
-import { registerBuiltinEffects } from "@webgl-scroll/effects";
-import { WebGLEngineTrigger } from "@webgl-scroll/react";
-
-registerBuiltinEffects();
+import { builtinEffects } from "@webgl-scroll/effects";
+import { WebGLEngineTrigger, WebGLScrollRuntime } from "@webgl-scroll/react";
 
 export function PageSection() {
   return (
-    <WebGLEngineTrigger
-      lifecycle={{ preloadMargin: "120vh", suspendMargin: "100vh", unloadMargin: "300vh" }}
-      effects={[{ type: "fade-title", layer: "content", params: { fg: "#f7f2ea" } }]}
-      trigger="stage-title"
-    >
-      <h1>Stage</h1>
-    </WebGLEngineTrigger>
+    <>
+      <WebGLScrollRuntime effects={[builtinEffects()]} />
+      <WebGLEngineTrigger
+        lifecycle={{ preloadMargin: "120vh", suspendMargin: "100vh", unloadMargin: "300vh" }}
+        effects={[{ type: "fade-title", layer: "content", params: { fg: "#f7f2ea" } }]}
+        trigger="stage-title"
+      >
+        <h1>Stage</h1>
+      </WebGLEngineTrigger>
+    </>
   );
 }
 ```
 
-The React package emits `data-webgl-*` trigger metadata. The host app still owns the canvas setup, renderer loop, and teardown.
+`WebGLScrollRuntime` owns the canvas, renderer loop, pointer bridge, ScrollTrigger bridge, effect router, resize, teardown, default asset resolver, and dev `window.__webglScrollDebug` hook. `WebGLEngineTrigger` emits `data-webgl-*` trigger metadata.
 
 ## Lifecycle And Asset Loading
 
 Effects are scheduled by viewport distance. Defaults are:
 
-- `preloadMargin: "100vh"`: create the effect and call `onPreload` before it reaches the viewport.
+- `preloadMargin: "100vh"`: create the effect and call `preload` before it reaches the viewport.
 - `suspendMargin: "100vh"`: keep fast-return state while pausing visible work after it leaves the active range.
 - `unloadMargin: "250vh"` plus `minIdleMs: 5000`: dispose effects that stay far away long enough.
 - `maxConcurrentPreloads: 2`: limit simultaneous effect preload work.
 
-Apps can override these defaults globally through `EffectRouter({ lifecycle })`, per trigger with `data-webgl-lifecycle` or `WebGLEngineTrigger.lifecycle`, and per effect with `effect.lifecycle`.
+Apps can override these defaults globally through `createWebGLScrollRuntime({ lifecycle })` or `<WebGLScrollRuntime lifecycle={...} />`, per trigger with `data-webgl-lifecycle` or `WebGLEngineTrigger.lifecycle`, and per effect with `effect.lifecycle`.
 
-The package does not need to own host-wide downloading. Hosts may prefetch all known files early, then provide an `assetResolver` to the router. Built-in `asset-layer` and `glb-particles` first ask that resolver for image/video/GLB data and only fall back to their declared `src` when the resolver returns nothing. `@webgl-scroll/effects` also exports `collectBuiltinEffectAssetRequests()` so an app can derive a preload manifest from effect declarations.
+The runtime includes a default fetch/blob asset resolver. Hosts with route-level prefetching, auth, cache, or service-worker policy can override it with `assetResolver`. Built-in `asset-layer` and `glb-particles` first ask that resolver for image/video/GLB data and only fall back to their declared `src` when the resolver returns nothing. `@webgl-scroll/effects` also exports `collectBuiltinEffectAssetRequests()` so an app can derive a preload manifest from effect declarations.
 
 ## Which Package Should I Use?
 
 | Need | Install | Why |
 | --- | --- | --- |
-| Runtime, registry, state tree, shared pointer input, GPU helpers, custom effects | `@webgl-scroll/core` | Lowest-level WebGL scroll engine |
+| Runtime, registry, state tree, shared pointer input, GPU helpers, custom effects | `@webgl-scroll/core` | Function-first WebGL scroll runtime |
 | Asset layers, fade title, pixelated wipe, and GLB particles | `@webgl-scroll/effects` | Built-in effects on top of core |
 | React trigger components | `@webgl-scroll/react` | React bindings for trigger markup |
 
@@ -85,7 +86,7 @@ See [docs/package-boundaries.md](docs/package-boundaries.md).
 
 ## Status
 
-`0.1.0` is the first public release line. Current development on `codex/lifecycle-host-prefetch` has implemented lifecycle-distance scheduling, host-managed asset resolver support, built-in asset manifest helpers, and lifecycle-aware `asset-layer` / `glb-particles` loading. Codex Web has validated the unpublished package build through local tarballs; publish follow-up should merge this branch into the release line, cut the next `@webgl-scroll/*` version, then move Codex Web back to published npm packages.
+`0.3.0` is the function-first runtime release line: `WebGLEffect` classes are removed, custom effects use `defineWebGLEffect()`, built-ins register through `builtinEffects()`, and apps should prefer `createWebGLScrollRuntime()` / `<WebGLScrollRuntime />` over local renderer/pointer/router glue.
 
 ## License
 

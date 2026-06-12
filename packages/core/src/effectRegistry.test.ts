@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { WebGLEffect } from "./effectTypes";
 import {
   allEffects,
   applyDefaults,
@@ -10,9 +9,9 @@ import {
   validateParams
 } from "./effectRegistry";
 
-class StubEffect extends WebGLEffect {
+class StubEffect {
   readonly type = "stub";
-  create(): void {}
+  create(_context?: unknown): void {}
   update(): void {}
   dispose(): void {}
 }
@@ -23,19 +22,19 @@ afterEach(() => {
 
 describe("registerEffect", () => {
   it("registers and resolves an effect by type", () => {
-    registerEffect({ klass: StubEffect, type: "stub" });
+    registerEffect({ create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "stub" });
 
     const resolved = resolveEffect("stub");
 
     expect(resolved).toBeDefined();
     expect(resolved?.type).toBe("stub");
-    expect(resolved?.klass).toBe(StubEffect);
+    expect(typeof resolved?.create).toBe("function");
   });
 
   it("throws when registering a duplicate type", () => {
-    registerEffect({ klass: StubEffect, type: "stub" });
+    registerEffect({ create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "stub" });
 
-    expect(() => registerEffect({ klass: StubEffect, type: "stub" })).toThrow(
+    expect(() => registerEffect({ create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "stub" })).toThrow(
       'Effect type "stub" is already registered.'
     );
   });
@@ -47,8 +46,8 @@ describe("registerEffect", () => {
 
 describe("allEffects", () => {
   it("returns all registered effects", () => {
-    registerEffect({ klass: StubEffect, type: "a" });
-    registerEffect({ klass: StubEffect, type: "b" });
+    registerEffect({ create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "a" });
+    registerEffect({ create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "b" });
 
     const all = allEffects();
 
@@ -63,7 +62,7 @@ describe("allEffects", () => {
 
 describe("clearEffectRegistry", () => {
   it("removes all registrations", () => {
-    registerEffect({ klass: StubEffect, type: "stub" });
+    registerEffect({ create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "stub" });
     clearEffectRegistry();
 
     expect(resolveEffect("stub")).toBeUndefined();
@@ -74,8 +73,8 @@ describe("clearEffectRegistry", () => {
 describe("applyDefaults", () => {
   it("fills in defaults from paramSchema", () => {
     registerEffect({
-      klass: StubEffect,
-      paramSchema: {
+      create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; },
+      schema: {
         opacity: { default: 0.8, type: "number" },
         strength: { default: 1.0, type: "number" }
       },
@@ -88,7 +87,7 @@ describe("applyDefaults", () => {
   });
 
   it("returns params as-is when no schema exists", () => {
-    registerEffect({ klass: StubEffect, type: "stub" });
+    registerEffect({ create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "stub" });
 
     const params = { foo: "bar" };
 
@@ -105,8 +104,8 @@ describe("applyDefaults", () => {
 describe("validateParams", () => {
   it("clamps numbers within min/max", () => {
     registerEffect({
-      klass: StubEffect,
-      paramSchema: {
+      create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; },
+      schema: {
         strength: { default: 0.5, max: 1.0, min: 0.1, type: "number" }
       },
       type: "stub"
@@ -119,8 +118,8 @@ describe("validateParams", () => {
 
   it("parses string numbers", () => {
     registerEffect({
-      klass: StubEffect,
-      paramSchema: {
+      create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; },
+      schema: {
         strength: { default: 0.5, type: "number" }
       },
       type: "stub"
@@ -131,8 +130,8 @@ describe("validateParams", () => {
 
   it("falls back to default for NaN number strings", () => {
     registerEffect({
-      klass: StubEffect,
-      paramSchema: {
+      create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; },
+      schema: {
         strength: { default: 0.5, type: "number" }
       },
       type: "stub"
@@ -145,8 +144,8 @@ describe("validateParams", () => {
 
   it("coerces string booleans", () => {
     registerEffect({
-      klass: StubEffect,
-      paramSchema: {
+      create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; },
+      schema: {
         enabled: { default: true, type: "boolean" }
       },
       type: "stub"
@@ -158,8 +157,8 @@ describe("validateParams", () => {
 
   it("passes through unknown keys untouched", () => {
     registerEffect({
-      klass: StubEffect,
-      paramSchema: {
+      create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; },
+      schema: {
         strength: { default: 0.5, type: "number" }
       },
       type: "stub"
@@ -171,7 +170,7 @@ describe("validateParams", () => {
   });
 
   it("returns params as-is when no schema exists", () => {
-    registerEffect({ klass: StubEffect, type: "stub" });
+    registerEffect({ create: (context) => { const effect = new StubEffect(); effect.create(context); return effect; }, type: "stub" });
 
     const params = { foo: 42 };
 

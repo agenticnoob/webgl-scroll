@@ -1,8 +1,8 @@
 import { registerEffect, resolveEffect } from "@webgl-scroll/core";
-import { AssetLayerEffect } from "./assets/assetLayerEffect";
-import { FadeTitleEffect } from "./fadeTitleEffect";
-import { GlbParticlesEffect } from "./glbParticles/glbParticlesEffect";
-import { PixelatedWipeEffect } from "./pixelatedWipeEffect";
+import { assetLayerEffect } from "./assets/assetLayerEffect";
+import { fadeTitleEffect } from "./fadeTitleEffect";
+import { glbParticlesEffect } from "./glbParticles/glbParticlesEffect";
+import { pixelatedWipeEffect } from "./pixelatedWipeEffect";
 
 /**
  * Register all built-in WebGL effects.
@@ -12,24 +12,22 @@ import { PixelatedWipeEffect } from "./pixelatedWipeEffect";
  */
 export function registerBuiltinEffects(): void {
   if (!resolveEffect("asset-layer")) {
-    registerEffect({ klass: AssetLayerEffect, type: "asset-layer" });
+    registerEffect(assetLayerEffect);
   }
 
   if (!resolveEffect("fade-title")) {
-    registerEffect({ klass: FadeTitleEffect, type: "fade-title" });
+    registerEffect(fadeTitleEffect);
   }
 
   if (!resolveEffect("glb-particles")) {
-    registerEffect({ klass: GlbParticlesEffect, type: "glb-particles" });
+    registerEffect(glbParticlesEffect);
   }
 
   if (!resolveEffect("pixelated-wipe")) {
-    registerEffect({
-      klass: PixelatedWipeEffect,
-      paramSchema: {
-        cutIndex: { type: "number" }
-      },
-      type: "pixelated-wipe"
-    });
+    registerEffect(pixelatedWipeEffect);
   }
+}
+
+export function builtinEffects() {
+  return [assetLayerEffect, fadeTitleEffect, glbParticlesEffect, pixelatedWipeEffect];
 }

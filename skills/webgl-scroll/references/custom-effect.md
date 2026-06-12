@@ -1,36 +1,40 @@
 # Custom Effect
 
-Create a custom visual by extending `WebGLEffect`.
+Create a custom visual with `defineWebGLEffect()`.
 
 ```ts
 import {
-  WebGLEffect,
+  defineWebGLEffect,
   type EffectContext,
   type RenderContext,
   type TriggerSnapshot
 } from "@webgl-scroll/core";
 
-export class RippleEffect extends WebGLEffect {
-  readonly type = "ripple";
-
-  create(_context: EffectContext): void {
+export const rippleEffect = defineWebGLEffect({
+  type: "ripple",
+  schema: {
+    strength: { type: "number", default: 1, min: 0, max: 2 }
+  },
+  create(_context: EffectContext) {
     // Allocate mesh, material, geometry, or textures here.
-  }
 
-  update(_snapshot: TriggerSnapshot, _context: RenderContext): void {
-    // Read progress and write uniforms or transforms here.
-  }
+    return {
+      update(_snapshot: TriggerSnapshot, _context: RenderContext): void {
+        // Read progress and write uniforms or transforms here.
+      },
 
-  dispose(): void {
-    // Dispose all GPU resources and listeners here.
+      dispose(): void {
+        // Dispose all GPU resources and listeners here.
+      }
+    };
   }
-}
+});
 ```
 
 Rules:
 
 - Do not import app content into an effect.
 - Use params for app-provided values.
-- Add param schema when values need coercion or defaults.
+- Add `schema` when values need coercion or defaults.
 - Dispose geometries, materials, textures, videos, and listeners.
 - Add a new effect when the visual model changes; add params when only tuning an existing model.

@@ -1,15 +1,44 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as THREE from "three";
 
-import type { EffectContext, RenderContext, TriggerSnapshot } from "@webgl-scroll/core";
+import type { EffectContext, RenderContext, TriggerSnapshot, WebGLEffectInstance } from "@webgl-scroll/core";
 import { clearEffectRegistry, resolveEffect, sharedStateTree } from "@webgl-scroll/core";
 
 import { registerBuiltinEffects } from "../builtinEffects";
 import {
-  GlbParticlesEffect,
+  glbParticlesEffect,
   resetGlbParticlesRuntimeForTests,
   setGlbParticlesRuntimeForTests
 } from "./glbParticlesEffect";
+
+function createLegacyTestProxy(definition: typeof glbParticlesEffect) {
+  let instance: WebGLEffectInstance | undefined;
+
+  return {
+    create(context: EffectContext) {
+      instance = definition.create(context);
+    },
+    dispose() {
+      instance?.dispose();
+    },
+    enter(snapshot: TriggerSnapshot) {
+      instance?.enter?.(snapshot);
+    },
+    preload(snapshot: TriggerSnapshot, context: RenderContext) {
+      return instance?.preload?.(snapshot, context);
+    },
+    suspend(snapshot: TriggerSnapshot) {
+      instance?.suspend?.(snapshot);
+    },
+    update(snapshot: TriggerSnapshot, context: RenderContext) {
+      instance?.update(snapshot, context);
+    }
+  };
+}
+
+const GlbParticlesEffect = function () {
+  return createLegacyTestProxy(glbParticlesEffect);
+} as unknown as { new(): ReturnType<typeof createLegacyTestProxy> };
 
 function makeContext(params: Record<string, unknown>, scene = new THREE.Scene()): EffectContext {
   return {
@@ -98,7 +127,7 @@ describe("GlbParticlesEffect", () => {
 
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }, scene));
-    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
+    await effect.preload(makeSnapshot(element), makeRenderContext({ scene }));
 
     expect(scene.children.some((child) => child.type === "Group")).toBe(true);
 
@@ -123,7 +152,7 @@ describe("GlbParticlesEffect", () => {
     setVisibleRect(element);
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }, scene));
-    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
+    await effect.preload(makeSnapshot(element), makeRenderContext({ scene }));
 
     sharedStateTree.pointer = {
       idleMs: 0,
@@ -165,7 +194,7 @@ describe("GlbParticlesEffect", () => {
     setVisibleRect(element);
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }, scene));
-    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
+    await effect.preload(makeSnapshot(element), makeRenderContext({ scene }));
 
     sharedStateTree.pointer = {
       idleMs: 160,
@@ -219,7 +248,7 @@ describe("GlbParticlesEffect", () => {
         scene
       )
     );
-    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
+    await effect.preload(makeSnapshot(element), makeRenderContext({ scene }));
 
     effect.update(makeSnapshot(element), makeRenderContext({ scene, time: 2 }));
 
@@ -245,7 +274,7 @@ describe("GlbParticlesEffect", () => {
 
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }));
-    await effect.onPreload(makeSnapshot(document.createElement("section")), makeRenderContext());
+    await effect.preload(makeSnapshot(document.createElement("section")), makeRenderContext());
 
     sharedStateTree.reducedMotion = true;
     effect.update(makeSnapshot(document.createElement("section")), makeRenderContext());
@@ -262,7 +291,7 @@ describe("GlbParticlesEffect", () => {
 
     const effect = new GlbParticlesEffect();
     effect.create(makeContext({ src: "/model.glb" }));
-    await effect.onPreload(makeSnapshot(document.createElement("section")), makeRenderContext());
+    await effect.preload(makeSnapshot(document.createElement("section")), makeRenderContext());
     effect.dispose();
 
     expect(dispose).toHaveBeenCalledTimes(2);
@@ -285,7 +314,7 @@ describe("GlbParticlesEffect", () => {
       assetResolver: { resolve }
     });
 
-    await effect.onPreload(makeSnapshot(element), makeRenderContext({ scene }));
+    await effect.preload(makeSnapshot(element), makeRenderContext({ scene }));
 
     expect(resolve).toHaveBeenCalledWith({
       effect: "glb-particles",
@@ -312,10 +341,10 @@ describe("GlbParticlesEffect", () => {
     effect.create(makeContext({ src: "/model.glb" }));
 
     await expect(
-      effect.onPreload(makeSnapshot(document.createElement("section")), makeRenderContext())
+      effect.preload(makeSnapshot(document.createElement("section")), makeRenderContext())
     ).rejects.toThrow("network");
     await expect(
-      effect.onPreload(makeSnapshot(document.createElement("section")), makeRenderContext())
+      effect.preload(makeSnapshot(document.createElement("section")), makeRenderContext())
     ).resolves.toBeUndefined();
 
     expect(loadOrigins).toHaveBeenCalledTimes(2);

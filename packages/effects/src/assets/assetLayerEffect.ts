@@ -1,8 +1,8 @@
 import {
+  defineWebGLEffect,
   type EffectContext,
   type RenderContext,
-  type TriggerSnapshot,
-  WebGLEffect
+  type TriggerSnapshot
 } from "@webgl-scroll/core";
 
 import type { AssetRuntime, AssetRuntimeFactoryContext } from "./assetRuntime";
@@ -24,16 +24,13 @@ type AssetLayerRuntimeEntry = {
 
 let runtimeFactory: AssetRuntimeFactory = createDefaultRuntime;
 
-export class AssetLayerEffect extends WebGLEffect {
-  readonly type = "asset-layer";
-
-  private assets: AssetLayerRuntimeEntry[] = [];
-  private placement = normalizeAssetLayerParams({}).placement;
-
-  create(context: EffectContext): void {
+export const assetLayerEffect = defineWebGLEffect({
+  type: "asset-layer",
+  create(context: EffectContext) {
+    let assets: AssetLayerRuntimeEntry[] = [];
     const params = normalizeAssetLayerParams(context.params);
-    this.placement = params.placement;
-    this.assets = params.assets.map((descriptor) => {
+    const placement = params.placement;
+    assets = params.assets.map((descriptor) => {
       const runtime = runtimeFactory(descriptor, {
         assetResolver: context.assetResolver,
         renderer: context.renderer
@@ -41,51 +38,53 @@ export class AssetLayerEffect extends WebGLEffect {
       context.scene.add(runtime.object);
       return { placement: descriptor.placement, runtime };
     });
+
+    return {
+      preload(snapshot: TriggerSnapshot, _context: RenderContext): Promise<void> {
+        return Promise.all(
+          assets.map((asset) => asset.runtime.preload?.(snapshot))
+        ).then(() => undefined);
+      },
+
+      enter(snapshot: TriggerSnapshot): void {
+        for (const asset of assets) {
+          void Promise.resolve(asset.runtime.preload?.(snapshot)).catch(() => undefined);
+        }
+      },
+
+      suspend(snapshot: TriggerSnapshot): void {
+        for (const asset of assets) {
+          asset.runtime.suspend?.(snapshot);
+        }
+      },
+
+      update(snapshot: TriggerSnapshot, renderContext: RenderContext): void {
+        const rect = snapshot.element.getBoundingClientRect();
+
+        if (rect.width <= 0 || rect.height <= 0) {
+          return;
+        }
+
+        for (const asset of assets) {
+          const bounds = mapElementRectToWorld({
+            placement: { ...placement, ...asset.placement },
+            rect,
+            viewport: renderContext.viewport
+          });
+
+          asset.runtime.update(bounds, snapshot, renderContext);
+        }
+      },
+
+      dispose(): void {
+        for (const asset of assets) {
+          asset.runtime.dispose();
+        }
+        assets = [];
+      }
+    };
   }
-
-  onPreload(snapshot: TriggerSnapshot, _context: RenderContext): Promise<void> {
-    return Promise.all(
-      this.assets.map((asset) => asset.runtime.preload?.(snapshot))
-    ).then(() => undefined);
-  }
-
-  onEnter(snapshot: TriggerSnapshot): void {
-    for (const asset of this.assets) {
-      void Promise.resolve(asset.runtime.preload?.(snapshot)).catch(() => undefined);
-    }
-  }
-
-  onSuspend(snapshot: TriggerSnapshot): void {
-    for (const asset of this.assets) {
-      asset.runtime.suspend?.(snapshot);
-    }
-  }
-
-  update(snapshot: TriggerSnapshot, context: RenderContext): void {
-    const rect = snapshot.element.getBoundingClientRect();
-
-    if (rect.width <= 0 || rect.height <= 0) {
-      return;
-    }
-
-    for (const asset of this.assets) {
-      const bounds = mapElementRectToWorld({
-        placement: { ...this.placement, ...asset.placement },
-        rect,
-        viewport: context.viewport
-      });
-
-      asset.runtime.update(bounds, snapshot, context);
-    }
-  }
-
-  dispose(): void {
-    for (const asset of this.assets) {
-      asset.runtime.dispose();
-    }
-    this.assets = [];
-  }
-}
+});
 
 export function setAssetLayerRuntimeFactoryForTests(factory: AssetRuntimeFactory): void {
   runtimeFactory = factory;

@@ -8,6 +8,7 @@ export * from "./gpu/renderTargetPool";
 export * from "./lifecycle";
 export * from "./pointerBridge";
 export * from "./pointerState";
+export * from "./runtime";
 export * from "./webglRendererLoop";
 export * from "./webglScrollTriggers";
 export * from "./webglStateTree";

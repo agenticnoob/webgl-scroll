@@ -61,8 +61,8 @@ Params:
 
 Cleanup:
 
-- Asset runtimes load through effect lifecycle. `create()` installs lightweight containers; image/GLB downloads and video `src` attachment happen from `onPreload` or active-entry fallback.
-- If the router receives an `assetResolver`, image/video/GLB assets ask it first with `{ effect: "asset-layer", id, kind, src }`.
+- Asset runtimes load through effect lifecycle. Effect `create()` installs lightweight containers; image/GLB downloads and video `src` attachment happen from `preload` or active-entry fallback.
+- If the runtime receives an `assetResolver`, image/video/GLB assets ask it first with `{ effect: "asset-layer", id, kind, src }`.
 - Image and video textures, geometries, and materials are disposed with the effect.
 - GLB object graphs are traversed so geometries, materials, and texture-valued material fields are disposed.
 - Reduced motion pauses video playback and hides WebGL asset layers so DOM content remains readable.
@@ -159,7 +159,7 @@ Params:
 
 Runtime:
 
-- The effect loads during `onPreload`, samples GLB mesh surfaces, normalizes origins, creates origin/position/velocity textures, runs GPU velocity and position passes, then renders one `Points` object.
+- The effect loads during `preload`, samples GLB mesh surfaces, normalizes origins, creates origin/position/velocity textures, runs GPU velocity and position passes, then renders one `Points` object.
 - `create()` only installs an invisible group. If the trigger jumps straight to active before the preload margin is reached, `onEnter` / active `update()` starts the same idempotent preload path.
 - If the router receives an `assetResolver`, the effect asks it first with `{ effect: "glb-particles", kind: "glb", src }` and supports `arrayBuffer` or `blob` results before falling back to the declared `src`.
 - Placement owns the DOM anchor and base model size; `transform` is applied on top of that base. Do not create a separate transform effect for ordinary object rotation or scale.

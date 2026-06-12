@@ -1,6 +1,6 @@
 {
   "name": "@webgl-scroll/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Core runtime for composable WebGL scroll effects.",
   "type": "module",
   "repository": {
@@ -9,7 +9,11 @@
     "directory": "packages/core"
   },
   "sideEffects": false,
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

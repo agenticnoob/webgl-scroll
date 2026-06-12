@@ -3,14 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearEffectRegistry, registerEffect } from "./effectRegistry";
 import { EffectRouter } from "./effectRouter";
 import type { EffectContext, RenderContext, TriggerSnapshot } from "./effectTypes";
-import { WebGLEffect } from "./effectTypes";
 import * as THREE from "three";
 
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
-class MockEffect extends WebGLEffect {
+class MockEffect {
   readonly type = "mock";
   createSpy = vi.fn();
   updateSpy = vi.fn();
@@ -33,23 +32,23 @@ class MockEffect extends WebGLEffect {
     this.disposeSpy();
   }
 
-  override onEnter(snapshot: TriggerSnapshot): void {
+  enter(snapshot: TriggerSnapshot): void {
     this.onEnterSpy(snapshot);
   }
 
-  override onLeave(snapshot: TriggerSnapshot): void {
+  leave(snapshot: TriggerSnapshot): void {
     this.onLeaveSpy(snapshot);
   }
 
-  override onPreload(snapshot: TriggerSnapshot): void | Promise<void> {
+  preload(snapshot: TriggerSnapshot): void | Promise<void> {
     return this.onPreloadSpy(snapshot);
   }
 
-  override onResize(viewport: { height: number; width: number }): void {
+  resize(viewport: { height: number; width: number }): void {
     this.onResizeSpy(viewport);
   }
 
-  override onSuspend(snapshot: TriggerSnapshot): void {
+  suspend(snapshot: TriggerSnapshot): void {
     this.onSuspendSpy(snapshot);
   }
 }
@@ -111,7 +110,7 @@ afterEach(() => {
 
 describe("EffectRouter", () => {
   it("creates an effect instance when a new trigger appears", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
 
     const router = new EffectRouter();
     const snapshot = makeSnapshot();
@@ -125,7 +124,7 @@ describe("EffectRouter", () => {
   });
 
   it("reuses existing effect instance on subsequent frames", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
 
     const router = new EffectRouter();
     const snapshot = makeSnapshot();
@@ -143,7 +142,7 @@ describe("EffectRouter", () => {
   });
 
   it("disposes effect when trigger disappears", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
 
     const router = new EffectRouter();
     const snapshot = makeSnapshot();
@@ -170,8 +169,8 @@ describe("EffectRouter", () => {
     expect(router.size).toBe(0);
   });
 
-  it("fires onEnter when trigger becomes active", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+  it("fires enter when trigger becomes active", () => {
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
 
     const router = new EffectRouter();
     const ctx = makeRenderContext();
@@ -185,8 +184,8 @@ describe("EffectRouter", () => {
     expect(latestMock.onEnterSpy).toHaveBeenCalledOnce();
   });
 
-  it("fires onLeave when trigger becomes inactive", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+  it("fires leave when trigger becomes inactive", () => {
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
 
     const router = new EffectRouter();
     const ctx = makeRenderContext();
@@ -200,8 +199,8 @@ describe("EffectRouter", () => {
     expect(latestMock.onLeaveSpy).toHaveBeenCalledOnce();
   });
 
-  it("does not re-fire onEnter/onLeave when activity state stays the same", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+  it("does not re-fire enter/leave when activity state stays the same", () => {
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
 
     const router = new EffectRouter();
     const ctx = makeRenderContext();
@@ -215,7 +214,7 @@ describe("EffectRouter", () => {
   });
 
   it("forwards resize to all active effects", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
 
     const router = new EffectRouter();
     const ctx = makeRenderContext();
@@ -228,7 +227,7 @@ describe("EffectRouter", () => {
   });
 
   it("disposeAll clears all instances", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
 
     const router = new EffectRouter();
     const ctx = makeRenderContext();
@@ -244,8 +243,8 @@ describe("EffectRouter", () => {
 
   it("applies paramSchema defaults to effect context", () => {
     registerEffect({
-      klass: MockEffectFactory,
-      paramSchema: {
+      create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; },
+      schema: {
         strength: { default: 0.8, type: "number" }
       },
       type: "mock"
@@ -262,7 +261,7 @@ describe("EffectRouter", () => {
   });
 
   it("passes asset resolver to effect create context", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
 
     const assetResolver = { resolve: vi.fn() };
     const router = new EffectRouter({ assetResolver });
@@ -276,13 +275,13 @@ describe("EffectRouter", () => {
   });
 
   it("handles multiple effect types independently", () => {
-    class OtherEffect extends WebGLEffect {
+    class OtherEffect {
       readonly type = "other";
       createSpy = vi.fn();
       updateSpy = vi.fn();
       disposeSpy = vi.fn();
 
-      create(): void {
+      create(_context?: unknown): void {
         this.createSpy();
       }
       update(): void {
@@ -302,8 +301,8 @@ describe("EffectRouter", () => {
       }
     }
 
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
-    registerEffect({ klass: OtherFactory, type: "other" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new OtherFactory(); effect.create(context); return effect; }, type: "other" });
 
     const router = new EffectRouter();
     const ctx = makeRenderContext();
@@ -329,7 +328,7 @@ describe("EffectRouter", () => {
   });
 
   it("does not create an idle far-away effect", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
     const router = new EffectRouter();
     const ctx = makeRenderContext();
     const element = document.createElement("div");
@@ -351,7 +350,7 @@ describe("EffectRouter", () => {
   });
 
   it("creates and preloads an effect inside preload margin", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
     const router = new EffectRouter({ lifecycle: { preloadMargin: "100vh" } });
     const ctx = makeRenderContext();
     const element = document.createElement("div");
@@ -376,8 +375,8 @@ describe("EffectRouter", () => {
     expect(latestMock.updateSpy.mock.calls[0][0].lifecycleConfig.preloadMargin).toBe("100vh");
   });
 
-  it("fires onSuspend when an active effect leaves active range but stays retained", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+  it("fires suspend when an active effect leaves active range but stays retained", () => {
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
     const router = new EffectRouter();
     const ctx = makeRenderContext();
     const element = document.createElement("div");
@@ -402,7 +401,7 @@ describe("EffectRouter", () => {
   });
 
   it("limits concurrent preload dispatches", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
     const router = new EffectRouter({ lifecycle: { maxConcurrentPreloads: 1, preloadMargin: "100vh" } });
     const ctx = makeRenderContext();
     const first = document.createElement("div");
@@ -441,13 +440,13 @@ describe("EffectRouter", () => {
     });
 
     class BlockingPreloadFactory extends MockEffectFactory {
-      override onPreload(snapshot: TriggerSnapshot): void | Promise<void> {
-        super.onPreload(snapshot);
+      preload(snapshot: TriggerSnapshot): void | Promise<void> {
+        super.preload(snapshot);
         return this === mockInstances[0] ? firstPreload : undefined;
       }
     }
 
-    registerEffect({ klass: BlockingPreloadFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new BlockingPreloadFactory(); effect.create(context); return effect; }, type: "mock" });
     const router = new EffectRouter({ lifecycle: { maxConcurrentPreloads: 1, preloadMargin: "100vh" } });
     const ctx = makeRenderContext();
     const first = document.createElement("div");
@@ -484,12 +483,12 @@ describe("EffectRouter", () => {
     expect(mockInstances[1].onPreloadSpy).toHaveBeenCalledOnce();
   });
 
-  it("releases preload slots when onPreload throws synchronously", async () => {
+  it("releases preload slots when preload throws synchronously", async () => {
     const preloadError = new Error("preload failed");
 
     class ThrowingPreloadFactory extends MockEffectFactory {
-      override onPreload(snapshot: TriggerSnapshot): void | Promise<void> {
-        super.onPreload(snapshot);
+      preload(snapshot: TriggerSnapshot): void | Promise<void> {
+        super.preload(snapshot);
 
         if (this === mockInstances[0] && this.onPreloadSpy.mock.calls.length === 1) {
           throw preloadError;
@@ -497,7 +496,7 @@ describe("EffectRouter", () => {
       }
     }
 
-    registerEffect({ klass: ThrowingPreloadFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new ThrowingPreloadFactory(); effect.create(context); return effect; }, type: "mock" });
     const router = new EffectRouter({ lifecycle: { maxConcurrentPreloads: 1, preloadMargin: "100vh" } });
     const ctx = makeRenderContext();
     const first = document.createElement("div");
@@ -535,8 +534,8 @@ describe("EffectRouter", () => {
     const preloadError = new Error("preload failed once");
 
     class RetryPreloadFactory extends MockEffectFactory {
-      override onPreload(snapshot: TriggerSnapshot): void | Promise<void> {
-        super.onPreload(snapshot);
+      preload(snapshot: TriggerSnapshot): void | Promise<void> {
+        super.preload(snapshot);
 
         if (this.onPreloadSpy.mock.calls.length === 1) {
           throw preloadError;
@@ -544,7 +543,7 @@ describe("EffectRouter", () => {
       }
     }
 
-    registerEffect({ klass: RetryPreloadFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new RetryPreloadFactory(); effect.create(context); return effect; }, type: "mock" });
     const router = new EffectRouter({ lifecycle: { maxConcurrentPreloads: 1, preloadMargin: "100vh" } });
     const ctx = makeRenderContext();
     const element = document.createElement("div");
@@ -586,13 +585,13 @@ describe("EffectRouter", () => {
     });
 
     class DeferredPreloadFactory extends MockEffectFactory {
-      override onPreload(snapshot: TriggerSnapshot): void | Promise<void> {
-        super.onPreload(snapshot);
+      preload(snapshot: TriggerSnapshot): void | Promise<void> {
+        super.preload(snapshot);
         return preload;
       }
     }
 
-    registerEffect({ klass: DeferredPreloadFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new DeferredPreloadFactory(); effect.create(context); return effect; }, type: "mock" });
     const router = new EffectRouter({ lifecycle: { preloadMargin: "100vh" } });
     const ctx = makeRenderContext();
     const element = document.createElement("div");
@@ -648,13 +647,13 @@ describe("EffectRouter", () => {
     });
 
     class RejectingPreloadFactory extends MockEffectFactory {
-      override onPreload(snapshot: TriggerSnapshot): void | Promise<void> {
-        super.onPreload(snapshot);
+      preload(snapshot: TriggerSnapshot): void | Promise<void> {
+        super.preload(snapshot);
         return this.onPreloadSpy.mock.calls.length === 1 ? firstPreload : undefined;
       }
     }
 
-    registerEffect({ klass: RejectingPreloadFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new RejectingPreloadFactory(); effect.create(context); return effect; }, type: "mock" });
     const router = new EffectRouter({ lifecycle: { preloadMargin: "100vh" } });
     const ctx = makeRenderContext();
     const element = document.createElement("div");
@@ -711,7 +710,7 @@ describe("EffectRouter", () => {
   });
 
   it("disposes a suspended effect after unload margin and idle ttl", () => {
-    registerEffect({ klass: MockEffectFactory, type: "mock" });
+    registerEffect({ create: (context) => { const effect = new MockEffectFactory(); effect.create(context); return effect; }, type: "mock" });
     let now = 0;
     const router = new EffectRouter({ getNow: () => now, lifecycle: { minIdleMs: 1000, unloadMargin: "100vh" } });
     const ctx = makeRenderContext();

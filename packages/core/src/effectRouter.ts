@@ -1,6 +1,6 @@
 import { applyDefaults, resolveEffect, validateParams } from "./effectRegistry";
 import type { WebGLAssetResolver } from "./assets";
-import type { EffectContext, RenderContext, TriggerSnapshot, WebGLEffect } from "./effectTypes";
+import type { EffectContext, RenderContext, TriggerSnapshot, WebGLEffectInstance } from "./effectTypes";
 import {
   computeElementViewportDistance,
   isWithinLifecycleMargin,
@@ -13,7 +13,7 @@ import {
 } from "./lifecycle";
 
 type EffectRouterEntry = {
-  effect: WebGLEffect;
+  effect: WebGLEffectInstance;
   idleSince?: number;
   phase: LifecyclePhase;
   preloadErrorMessage?: string;
@@ -125,7 +125,7 @@ export class EffectRouter {
    */
   resize(viewport: { height: number; width: number }): void {
     for (const { effect } of this.instances.values()) {
-      effect.onResize?.(viewport);
+      effect.resize?.(viewport);
     }
   }
 
@@ -169,8 +169,6 @@ export class EffectRouter {
       applyDefaults(snapshot.effect, snapshot.params)
     );
 
-    const effect = new registration.klass();
-
     const context: EffectContext = {
       assetResolver: this.assetResolver,
       element: snapshot.element,
@@ -179,7 +177,7 @@ export class EffectRouter {
       scene: renderContext.scene
     };
 
-    effect.create(context);
+    const effect = registration.create(context);
 
     return { effect, phase: "idle", preloadStatus: "idle", wasActive: false };
   }
@@ -252,7 +250,7 @@ export class EffectRouter {
         let preloadResult: void | Promise<void>;
 
         try {
-          preloadResult = entry.effect.onPreload?.(snapshot, renderContext);
+          preloadResult = entry.effect.preload?.(snapshot, renderContext);
         } catch (error) {
           preloadResult = Promise.reject(error);
         }
@@ -277,13 +275,13 @@ export class EffectRouter {
     }
 
     if (snapshot.isActive && !entry.wasActive) {
-      entry.effect.onEnter?.(snapshot);
+      entry.effect.enter?.(snapshot);
     } else if (!snapshot.isActive && entry.wasActive) {
-      entry.effect.onLeave?.(snapshot);
+      entry.effect.leave?.(snapshot);
     }
 
     if (snapshot.lifecycle?.phase === "suspended" && entry.phase !== "suspended") {
-      entry.effect.onSuspend?.(snapshot);
+      entry.effect.suspend?.(snapshot);
     }
   }
 }

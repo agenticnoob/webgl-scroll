@@ -2,7 +2,7 @@
 
 React bindings for `@webgl-scroll/core`.
 
-Use this package when JSX should emit typed `data-webgl-*` trigger metadata through `WebGLEngineTrigger`.
+Use this package when JSX should mount the package runtime through `<WebGLScrollRuntime />` and emit typed `data-webgl-*` trigger metadata through `WebGLEngineTrigger`.
 
 ## Install
 
@@ -13,6 +13,25 @@ npm install @webgl-scroll/core @webgl-scroll/react react react-dom
 ## Boundary
 
 `@webgl-scroll/react` owns React ergonomics only. It must not depend on Next.js runtime APIs or built-in effect implementations.
+
+## Runtime Component
+
+```tsx
+import { builtinEffects } from "@webgl-scroll/effects";
+import { WebGLEngineTrigger, WebGLScrollRuntime } from "@webgl-scroll/react";
+
+export function Scene() {
+  return (
+    <>
+      <WebGLScrollRuntime effects={[builtinEffects()]} />
+      <WebGLEngineTrigger
+        trigger="tree"
+        effects={[{ type: "glb-particles", params: { src: "/tree.glb" } }]}
+      />
+    </>
+  );
+}
+```
 
 ## Lifecycle Props
 

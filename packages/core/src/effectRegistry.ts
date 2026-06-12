@@ -1,21 +1,13 @@
-import type { ParamDef, WebGLEffect } from "./effectTypes";
+import type { WebGLEffectDefinition } from "./effectTypes";
 
 // ---------------------------------------------------------------------------
 // Effect registration
 // ---------------------------------------------------------------------------
 
 /**
- * A single registration entry that binds an effect type name to its constructor
- * and optional parameter schema.
+ * A single function-first effect definition.
  */
-export type EffectRegistration = {
-  /** Effect type name, matching `data-webgl-effect` values. */
-  type: string;
-  /** Effect constructor (must be a class extending WebGLEffect). */
-  klass: new () => WebGLEffect;
-  /** Optional parameter definitions for validation and defaults. */
-  paramSchema?: Record<string, ParamDef>;
-};
+export type EffectRegistration = WebGLEffectDefinition;
 
 // ---------------------------------------------------------------------------
 // Registry singleton
@@ -71,13 +63,13 @@ export function applyDefaults(
 ): Record<string, unknown> {
   const registration = registrations.get(type);
 
-  if (!registration?.paramSchema) {
+  if (!registration?.schema) {
     return params;
   }
 
   const result: Record<string, unknown> = {};
 
-  for (const [key, def] of Object.entries(registration.paramSchema)) {
+  for (const [key, def] of Object.entries(registration.schema)) {
     if (def.default !== undefined) {
       result[key] = def.default;
     }
@@ -98,13 +90,13 @@ export function validateParams(
 ): Record<string, unknown> {
   const registration = registrations.get(type);
 
-  if (!registration?.paramSchema) {
+  if (!registration?.schema) {
     return params;
   }
 
   const result = { ...params };
 
-  for (const [key, def] of Object.entries(registration.paramSchema)) {
+  for (const [key, def] of Object.entries(registration.schema)) {
     const raw = result[key];
 
     if (raw === undefined) {

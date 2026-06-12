@@ -3,10 +3,12 @@
 Replace copied source imports with package imports:
 
 ```ts
-import { WebGLRendererLoop } from "@webgl-scroll/core";
-import { registerBuiltinEffects } from "@webgl-scroll/effects";
-import { WebGLEngineTrigger } from "@webgl-scroll/react";
+import { createWebGLScrollRuntime } from "@webgl-scroll/core";
+import { builtinEffects } from "@webgl-scroll/effects";
+import { WebGLEngineTrigger, WebGLScrollRuntime } from "@webgl-scroll/react";
 ```
+
+Use `createWebGLScrollRuntime({ canvas, effects: [builtinEffects()] })` or `<WebGLScrollRuntime effects={[builtinEffects()]} />`. Do not keep copied renderer, pointer, router, ScrollTrigger, resize, teardown, or debug ownership in the app once the runtime adapter is available.
 
 Keep legacy DOM aliases working during migration:
 
@@ -32,5 +34,5 @@ Verify:
 - Canvas renders.
 - DOM fallback remains readable.
 - Scroll progress updates through the core bridge.
-- Effects are registered before engine start.
+- Effects are passed before engine start.
 - No package imports app modules.

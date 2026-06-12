@@ -5,10 +5,12 @@ Use this when replacing copied local engine code with package imports.
 ## Import Mapping
 
 ```ts
-import { WebGLRendererLoop } from "@webgl-scroll/core";
-import { registerBuiltinEffects } from "@webgl-scroll/effects";
-import { WebGLEngineTrigger } from "@webgl-scroll/react";
+import { createWebGLScrollRuntime } from "@webgl-scroll/core";
+import { builtinEffects } from "@webgl-scroll/effects";
+import { WebGLEngineTrigger, WebGLScrollRuntime } from "@webgl-scroll/react";
 ```
+
+Use `createWebGLScrollRuntime({ canvas, effects: [builtinEffects()] })` outside React, or `<WebGLScrollRuntime effects={[builtinEffects()]} />` in React. Do not recreate app-local renderer loop, pointer bridge, ScrollTrigger bridge, router, resize, teardown, or debug ownership after the runtime adapter is available.
 
 ## Preserve Legacy DOM
 
@@ -40,3 +42,4 @@ const themeStops = sections.map((section) => ({
 - Wipe follows divider anchors.
 - Reduced motion keeps content visible.
 - No duplicate renderer or duplicate ScrollTrigger owner exists.
+- `window.__webglScrollDebug.getState()` exists in development/localhost.
