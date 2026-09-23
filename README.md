@@ -8,7 +8,7 @@ Composable WebGL scroll effects for React, Next.js, and agentic frontend workflo
 npm install @webgl-scroll/core @webgl-scroll/effects @webgl-scroll/react gsap three
 ```
 
-React adapters require `react` and `react-dom` from the host app.
+The React adapter requires both `react` and `react-dom` from the host application.
 
 ## Quick Start
 
